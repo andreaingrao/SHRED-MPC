@@ -1,0 +1,6 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import * 
+from shred_utils.functions import *
+import matplotlib.pyplot as plt
+
+data_load()

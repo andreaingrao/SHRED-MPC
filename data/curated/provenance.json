@@ -1,0 +1,682 @@
+{
+  "experiment": "run_20260713_121325_067474",
+  "models": [
+    "run_20260713_121325_067474_training_000"
+  ],
+  "selection": "Representative is selected candidate nearest median pressure relative L2 error among eligible SHRED-selected candidates; ties resolved by earliest cycle.",
+  "sources": [
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/candidate_statistics.csv",
+      "bytes": 183633,
+      "sha256": "d21af1f35a8d2b907672869b2cd47894ec928105faae54c169213b2a7afc8008"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/run_metadata.json",
+      "bytes": 1739,
+      "sha256": "3cd560b8ddac33509cda9c1801bf892bc988171671aaf78a4d6e3884cb6c0592"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/training_events.csv",
+      "bytes": 158,
+      "sha256": "a4d2333abee127061a186f810081cf8c8280cd90862cad403d0b16b2d86e8165"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/lift_target_sequence_simulation_000.csv",
+      "bytes": 20911,
+      "sha256": "0ad34e19c08f47f1c9c10fa7f553355d6c7f3de6c2e543499b2aaab0074065d2"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/points_vec.npy",
+      "bytes": 57728,
+      "sha256": "48a21f2aaa8c4d2f396207aa1e7de225c8eff01a50048e7c5c04478e9b05116b"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0039/candidate_000_omega_+0.040000/shred_prediction.npz",
+      "bytes": 1311313,
+      "sha256": "4611f6416f90c3e83ea5e345c1401a05ece1085ea89c8182c189717b307486d6"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0039/candidate_000_omega_+0.040000/metadata.json",
+      "bytes": 193,
+      "sha256": "a17b41cf5b8d5753195eb26bf741e5b23497e2e91a0ac44534dda1d24a16e8dc"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0039/candidate_000_omega_+0.040000/CFD_0.csv",
+      "bytes": 95864,
+      "sha256": "5428217f358823042e27c5eb6d24ba1a11e26d3013379d1bf23c4cddd125032b"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0000/candidate_004_omega_+0.010000/shred_prediction.npz",
+      "bytes": 1310615,
+      "sha256": "4872195ecf064f37ca8dee426bb5f0344a1b18ef0d813f8ce04e5997ad5c38a2"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0000/candidate_004_omega_+0.010000/metadata.json",
+      "bytes": 191,
+      "sha256": "faa8742baab807e47a6a975e261eab7f227e949ace14962d96ddefc513cb2242"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0001/candidate_004_omega_+0.020000/shred_prediction.npz",
+      "bytes": 1310294,
+      "sha256": "34d88804564287a49d6fc59818b7d5830f06a8da12d7f4e20eb97d759c7d5fa9"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0001/candidate_004_omega_+0.020000/metadata.json",
+      "bytes": 192,
+      "sha256": "cd0eca04e92b5ae0d4a51d3677a76ce1ce81e1e02d47f677a42cf8e1755002ec"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0002/candidate_004_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310321,
+      "sha256": "9e0a83495229528b4e6535e9c983b88b38e7a8a0d75545fd7d2561bb1051c306"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0002/candidate_004_omega_+0.030000/metadata.json",
+      "bytes": 192,
+      "sha256": "33d65f6fb6943481c5de3c5aa0fedf7e835e9aed4030ed3712b8f010d84c018f"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0003/candidate_004_omega_+0.040000/shred_prediction.npz",
+      "bytes": 1310682,
+      "sha256": "f92d6b24dde955f523d494cb134f55b385600d7a6a4b7e30e25c60f15a66ef84"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0003/candidate_004_omega_+0.040000/metadata.json",
+      "bytes": 192,
+      "sha256": "1d971ba6433f910c6ae48e415d2019aa4ccedc5575f4f40b561b23c27c070a6e"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0004/candidate_002_omega_+0.040000/shred_prediction.npz",
+      "bytes": 1310620,
+      "sha256": "8102614feb95fc3cbf69f885f3eb28d1c8abb179d7b27f8603f593ec785656be"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0004/candidate_002_omega_+0.040000/metadata.json",
+      "bytes": 192,
+      "sha256": "81c1ac5ca8951f1a775965ea0804ba17c695af50db36030b6620cc0d972dfcde"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0005/candidate_000_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310376,
+      "sha256": "5705e542845667525a7c523830ffef2109414616ba6b53de10885b4100580d7c"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0005/candidate_000_omega_+0.030000/metadata.json",
+      "bytes": 192,
+      "sha256": "47b0daa5df8adfd1592448336849049338cf98a13e6c388929b53b3a276f51c7"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0006/candidate_000_omega_+0.020000/shred_prediction.npz",
+      "bytes": 1310987,
+      "sha256": "ced4159400de88d03113d5b07090ca8196fa63acd447756575ab86f7147e4b02"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0006/candidate_000_omega_+0.020000/metadata.json",
+      "bytes": 192,
+      "sha256": "d03f67a771eae4afde21158f0b4790c7ceb48bb214b8e38448e0fbfcdc5a4968"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0007/candidate_001_omega_+0.015000/shred_prediction.npz",
+      "bytes": 1310560,
+      "sha256": "863d899bbdf83ca4ce54247e3411768b2b9480727f05deba76afee2376fc1dd7"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0007/candidate_001_omega_+0.015000/metadata.json",
+      "bytes": 193,
+      "sha256": "a45b4868526b3ed319dc7f82288a3e193b6039debd8bd06d8ffc73f8b4a4d191"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0008/candidate_004_omega_+0.025000/shred_prediction.npz",
+      "bytes": 1310671,
+      "sha256": "16ded5ac924d3776c708ad181f227ef4b33189b26b8d4389e5b4d444a71603fa"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0008/candidate_004_omega_+0.025000/metadata.json",
+      "bytes": 194,
+      "sha256": "87a5d4cb57e0a18419aa84839ff43be1e7dcc23a82d3ed0728804063fc1deb73"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0009/candidate_002_omega_+0.025000/shred_prediction.npz",
+      "bytes": 1310855,
+      "sha256": "c898b375b1db70c440d7f5266800445b4c4960d16ba1a85eab5e04716bfbe906"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0009/candidate_002_omega_+0.025000/metadata.json",
+      "bytes": 194,
+      "sha256": "cb49d4258af92380d99c895ffbf3e97936948ceeaf3af54accff99dbfbe03a95"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0010/candidate_003_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310749,
+      "sha256": "7958d60277b85694156878a4f0a89f4d7330971d14017d87449e8bd1d3f0a75b"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0010/candidate_003_omega_+0.030000/metadata.json",
+      "bytes": 194,
+      "sha256": "b1c55ac62a1b74786917b91a2dec4154203ef8e8b354bd81fe406500b5984ff6"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0011/candidate_002_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310801,
+      "sha256": "f20c34c03b1ff7b6b5dd8dba8b93378c678a0e174694e081e4605be3c719e5c0"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0011/candidate_002_omega_+0.030000/metadata.json",
+      "bytes": 193,
+      "sha256": "a4c33a04269a6d064758935db6295570a7fe74daf9286dbfc72f2db87ff2c59f"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0012/candidate_002_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310608,
+      "sha256": "559c33f4abcab499812568e62609f37a464f3c457dbcb82b9ccedeff4b5fd8dd"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0012/candidate_002_omega_+0.030000/metadata.json",
+      "bytes": 193,
+      "sha256": "378435cecdb4e1d620d06b031751a76a8daf67833cec58e389175cdc97e449d3"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0013/candidate_000_omega_+0.020000/shred_prediction.npz",
+      "bytes": 1310636,
+      "sha256": "67dc24d81987fdfa4e288d30996d0723badd631e3d9424f11a081ac1c78a6d17"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0013/candidate_000_omega_+0.020000/metadata.json",
+      "bytes": 193,
+      "sha256": "d254839163658f0e3de86191b6d8b61f923d959d312239262686db653c14a098"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0014/candidate_002_omega_+0.020000/shred_prediction.npz",
+      "bytes": 1310419,
+      "sha256": "772ed6e93d22caf4baced4331a338e44bade6a9ca3c99ba5aab0275dde7b2125"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0014/candidate_002_omega_+0.020000/metadata.json",
+      "bytes": 193,
+      "sha256": "6c2478fb617ff62cfff4e97a6c53050c1ed3d1c5f90d33e87ca38864272e5a30"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0015/candidate_002_omega_+0.020000/shred_prediction.npz",
+      "bytes": 1310257,
+      "sha256": "abbd7fef2d341de95403deae4ad01480bd0f26fcfb45a8fc19882756cfe5a997"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0015/candidate_002_omega_+0.020000/metadata.json",
+      "bytes": 193,
+      "sha256": "80316e63425a87dadfdb2ee431e9f67097ea87a8a0a63d5ed66b99f925424ef3"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0016/candidate_004_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310501,
+      "sha256": "649577e76b307a8523f34e156c1ba1e13c5d631fa1ac8755d7b180bfc75b6817"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0016/candidate_004_omega_+0.030000/metadata.json",
+      "bytes": 193,
+      "sha256": "2984504822d37cd5522425f6f9385213034b25057e00b78d0edc8e9534be3519"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0017/candidate_002_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1311046,
+      "sha256": "44a4643437d084e77cf83f87d35dbca0648c4ee8f1404f54a63331931487f654"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0017/candidate_002_omega_+0.030000/metadata.json",
+      "bytes": 193,
+      "sha256": "e7a6dbc30735409217996913b8778961d6d76c7d5b3c81bffd8ed0858cb9c75c"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0018/candidate_004_omega_+0.040000/shred_prediction.npz",
+      "bytes": 1311255,
+      "sha256": "8e3d46d352c042544d0027402ab543911854ebeb36ed313d1fabe3750e249142"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0018/candidate_004_omega_+0.040000/metadata.json",
+      "bytes": 193,
+      "sha256": "8f7d395f4d5f914a9c47dfdf27bc9b09b10bcd48ac7a9f64d3620949b9c879ea"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0019/candidate_004_omega_+0.050000/shred_prediction.npz",
+      "bytes": 1310996,
+      "sha256": "73f4bd7dd5f2108bc369159dc3081910d84109f1f027d3ac8194cdbccfc20f83"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0019/candidate_004_omega_+0.050000/metadata.json",
+      "bytes": 193,
+      "sha256": "23088cf04d1c83d12eb4647dceff18042306893fee4c66166b671b2d660521d7"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0020/candidate_004_omega_+0.060000/shred_prediction.npz",
+      "bytes": 1311073,
+      "sha256": "d3b6184cb8a648913b16e8118f76ec60d2c505d3a41472cef53bae7d30c1e5da"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0020/candidate_004_omega_+0.060000/metadata.json",
+      "bytes": 193,
+      "sha256": "690080504525d9ea64c8d011b39ed517d03071d19a66e4a23397eeb06019b9e4"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0021/candidate_002_omega_+0.060000/shred_prediction.npz",
+      "bytes": 1311372,
+      "sha256": "4b1307edd9a7f9955a3d6d28d393845bacf5c11d1c007c0d04b9271bd635f860"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0021/candidate_002_omega_+0.060000/metadata.json",
+      "bytes": 193,
+      "sha256": "d27b22bcae510ea871e2c273c5d3031e435c2e6578afad605b88336ba041df88"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0022/candidate_002_omega_+0.060000/shred_prediction.npz",
+      "bytes": 1311323,
+      "sha256": "afd4187c0bdb5f90acd3a76923534534664b938f37078cb05ae599b163186587"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0022/candidate_002_omega_+0.060000/metadata.json",
+      "bytes": 193,
+      "sha256": "b32e9be820977a721ac4060f5b4f9441903f577c309d934d62b27ad974de5f25"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0023/candidate_000_omega_+0.050000/shred_prediction.npz",
+      "bytes": 1310607,
+      "sha256": "c88a0cce81a59a62f3c61bd63a7d4d598b11b45da8149bee456f7c356412a0f4"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0023/candidate_000_omega_+0.050000/metadata.json",
+      "bytes": 193,
+      "sha256": "4134a0c9313c6ae9fe91e5a330f9c696f4fe4312031fd137c1ecd56805f0cb4f"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0024/candidate_002_omega_+0.050000/shred_prediction.npz",
+      "bytes": 1310667,
+      "sha256": "0669987a0cca3bfac3c91c7adb3a93211881eeea156fb360d62c7647fe621b37"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0024/candidate_002_omega_+0.050000/metadata.json",
+      "bytes": 193,
+      "sha256": "36ca3a3e64c9aedcf1e19d7b1720e53e9f0fabdb7ebbc8cdfa752122846c0924"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0025/candidate_002_omega_+0.050000/shred_prediction.npz",
+      "bytes": 1311441,
+      "sha256": "9e6b11b2a670b4e30036232fc921143fc18fc16b1bc3ec9173bcbbbe721fb386"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0025/candidate_002_omega_+0.050000/metadata.json",
+      "bytes": 193,
+      "sha256": "504af30c138607289eef166313ec3886022e0aad0fe7cc315d6252c127fb6980"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0026/candidate_003_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311228,
+      "sha256": "6541f12a8f19d7dfa0e9502dfba7da670bbac2cbb446e709c5a093e9409f0b67"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0026/candidate_003_omega_+0.055000/metadata.json",
+      "bytes": 194,
+      "sha256": "04ae676e970cb02b938b632e2d949f943de16da5b569143b573c247ad4db880e"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0027/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311030,
+      "sha256": "669f72bb6ca3cf17b86e5fa2edd84b3f93e8f1cbc39e6001dc89f1cee1b54d8f"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0027/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "21889cb759443696f33a7a3ed413473264c098d3cb20db9550817aeedb54f5a1"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0028/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1310581,
+      "sha256": "e4ba42ee0bcf0e5dcd218f5657e512d6e7075e010fdd7ab3c7807fd7e6368e26"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0028/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "5df1c902b373b15daa075643a4266eb9e1efc46d54ca1416f6be7891c57b6452"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0029/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1310662,
+      "sha256": "ada63e94f799c6bd90228e345bd9b25a7b55efb541676692232440b49bece71b"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0029/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "6358988685ba2d39977775477d1a41ce7850d88b7237792d649b4d0d03fcdd67"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0030/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311157,
+      "sha256": "ab1d0cad0debffe7f4ed17b7afc7fd2e066c468f471a9a2f4aefc3515896e8a7"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0030/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "96f4be6496d8c3642e2079a79b23f29cf2f2638cbe4b63eabf1d47b805a1868e"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0031/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1310874,
+      "sha256": "1c3809f6abb65bf70901b333ec3a8f67d78167f2e2a97cef821ce90dc4da7c19"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0031/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "99001efec50a4f7b4a6154245ccd8eb197bf6d6642ccfdf50ff58be41fbcaad4"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0032/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311324,
+      "sha256": "b5b93be973c38e83f8d98375384bd8b7d29ae76bee3cf942d2521fddea2e79ac"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0032/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "37ad4f6ec808f08678fe358723cf2397a794064756fff1c92f0576015fb4ff86"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0033/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311098,
+      "sha256": "2b57598437a1ab240248086d42b7105179d350290b9ad1b474e20e7394a44c26"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0033/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "3b881949e74d0ba5f403732601a693a8c28e36ed157851f0a4ec96be7bf3291a"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0034/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311008,
+      "sha256": "4042a0a8489e7478003f070eee5d45f307578db09d9e5820f7c43cba7ec6e24b"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0034/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "6460feee7f9dbc8d9d6ffba9b06ce6519c61fb8baf1f7e996660138d37605f07"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0035/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311197,
+      "sha256": "44324a3ddd266a5ad64f4194ddbc19e0bd990e583ac810d7f121906b69539355"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0035/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "5de95935364263ec20f7dd2475b2288c30c874d141d9fb82dac84cb7f4d47b5e"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0036/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311306,
+      "sha256": "7518761477e94a2c6ea48aec4f9a0c83ffcb1d6b722739c82ee75510b9adff2a"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0036/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "b0cbe6c1fa9956738eaa56bdb6d4328b7b8fee84f5f82e498df6a60ba5d00dcb"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0037/candidate_002_omega_+0.055000/shred_prediction.npz",
+      "bytes": 1311199,
+      "sha256": "48fffa37cd08af3a51505b73bd399bdd800b703bf021c8102b0d5075dc0c51d5"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0037/candidate_002_omega_+0.055000/metadata.json",
+      "bytes": 195,
+      "sha256": "5e659ea2565913b6943afe41ba4dc7e2c500cce89cbe447581717b487b4242e6"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0038/candidate_001_omega_+0.050000/shred_prediction.npz",
+      "bytes": 1310908,
+      "sha256": "0d61fb33b6f20dfcbada49f3cfd9529a0539de04cc3af0821956a01a86750b1c"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0038/candidate_001_omega_+0.050000/metadata.json",
+      "bytes": 194,
+      "sha256": "14b4322830b634147f8f16f36a1297fab52fc1b144010aaea50527c380b5bc66"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0039/candidate_000_omega_+0.040000/shred_prediction.npz",
+      "bytes": 1311313,
+      "sha256": "4611f6416f90c3e83ea5e345c1401a05ece1085ea89c8182c189717b307486d6"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0039/candidate_000_omega_+0.040000/metadata.json",
+      "bytes": 193,
+      "sha256": "a17b41cf5b8d5753195eb26bf741e5b23497e2e91a0ac44534dda1d24a16e8dc"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0040/candidate_002_omega_+0.040000/shred_prediction.npz",
+      "bytes": 1311337,
+      "sha256": "487365fe331d0497724b028e1a90d1ee6aa59a6e40d4b3b21e9664e75a439bc6"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0040/candidate_002_omega_+0.040000/metadata.json",
+      "bytes": 193,
+      "sha256": "2193edac35bcf33d23a77fa38fbb35c7aae2c1ebf6c4be3e3ed817939e7ce00b"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0041/candidate_000_omega_+0.030000/shred_prediction.npz",
+      "bytes": 1310499,
+      "sha256": "947890984fa9040aa5c0a83d188d06a5a26b1c680ef75706b03be1ab70707e69"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0041/candidate_000_omega_+0.030000/metadata.json",
+      "bytes": 193,
+      "sha256": "26f58b17b8a70b495497d445cefdd4925bbdcf310f598db42e2d5f4eb5daf295"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0042/candidate_000_omega_+0.020000/shred_prediction.npz",
+      "bytes": 1310858,
+      "sha256": "0598632bc838c960160293de15da3b977b9c1779e6b68c09a968d6ffdcc05a44"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0042/candidate_000_omega_+0.020000/metadata.json",
+      "bytes": 193,
+      "sha256": "1fb7fdc6363e6697784f03c08a52d20ead29563d6aff126c9b425b3f1699d3bf"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0043/candidate_000_omega_+0.010000/shred_prediction.npz",
+      "bytes": 1310684,
+      "sha256": "57710ca0ac783794c1b09264a155a8524ae47d8dc2f4e00f92472cbbdddd87a0"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0043/candidate_000_omega_+0.010000/metadata.json",
+      "bytes": 193,
+      "sha256": "29e58409db781d648e8927bd9f7818502464d133cfbab843980ba6e2adde887c"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0044/candidate_000_omega_+0.000000/shred_prediction.npz",
+      "bytes": 1310283,
+      "sha256": "0708a5040cad03966ee49194d7a85f0a372ba62284d974743988dd1348c78f32"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0044/candidate_000_omega_+0.000000/metadata.json",
+      "bytes": 192,
+      "sha256": "07c24c067b16ec7f17090b076570a3d446409d285d3d5fd2706d28c244758d69"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0045/candidate_000_omega_-0.010000/shred_prediction.npz",
+      "bytes": 1310281,
+      "sha256": "e9042f29ec37d1c1f15c481647144a72a2bc4188a4ca8ad5407dab4b3299adc3"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0045/candidate_000_omega_-0.010000/metadata.json",
+      "bytes": 193,
+      "sha256": "482a7fac296d8d74ab504236dd5ff708ce1364fb43d72c1e832626e9d78c28bf"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0046/candidate_000_omega_-0.020000/shred_prediction.npz",
+      "bytes": 1310424,
+      "sha256": "afb5161cbccd30475bd309bdd0286c5ab1284e286a4f8d97aa03ace29825a9e3"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0046/candidate_000_omega_-0.020000/metadata.json",
+      "bytes": 195,
+      "sha256": "85f846574fad6106ebc594bfe7ac168ca1be5b3d715eff6de596324060ed9be0"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0047/candidate_004_omega_-0.010000/shred_prediction.npz",
+      "bytes": 1310336,
+      "sha256": "f367be8b336b267b343801930cca2e29fbfd1d47cb6cd0b0bbad47d914b4e558"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0047/candidate_004_omega_-0.010000/metadata.json",
+      "bytes": 195,
+      "sha256": "7718a6713dd77fac3a2611b7c9484268a36218efb892eddcb346b179b57371fd"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0048/candidate_004_omega_+0.000000/shred_prediction.npz",
+      "bytes": 1310730,
+      "sha256": "e023a71d4d7c3e17c347a9fc452cfd8f5a75ac0d4e929efdb7d1c34d36b17a93"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0048/candidate_004_omega_+0.000000/metadata.json",
+      "bytes": 193,
+      "sha256": "a82b6377d952a5bcfa01d183e11440b403e94c870292441bd8579eac63cfdf98"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0049/candidate_004_omega_+0.010000/shred_prediction.npz",
+      "bytes": 1310761,
+      "sha256": "0ef373400a3c2de1bd3d02fdd3210d6074d49cb8925926d8449ddfb4328a2981"
+    },
+    {
+      "path": "shred_stat_results/run_20260713_121325_067474/cfd_candidates/simulation_000/cycle_0049/candidate_004_omega_+0.010000/metadata.json",
+      "bytes": 192,
+      "sha256": "bc526b8a9f2cc428eaf259a2541d465fa884875e71954ba52ba22728fb100e16"
+    }
+  ],
+  "transforms": {
+    "selected_tracking": "For each simulation0 cycle0..49, select shred_selected==1 and concatenate lift_prediction, lift_cfd_reference and omega_future indices0:25. Label samples controller_timestep+1..+25; target is candidate row lift_target. CFD file time uses archived base_cfd_time plus 0.2*(1..25); not evidence of physical unsteady time.",
+    "tracking_checks": {
+      "checked_cycles": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "control_check": "candidate first25 omega equals next input control-history rows25:50 exactly",
+      "pressure_check": "candidate first25 pressure at recovered12 sensor IDs equals next sensor_input final25 pressure rows exactly",
+      "unverified_last_branch": "cycle49 has no next archived input to validate replay correspondence"
+    },
+    "point_order": "points.npy equals representative raw CFD coordinate columns exactly; normalized raw pressure using leftmost-x mean and q=.125 equals stored reference frame0 exactly."
+  },
+  "limitations": [
+    "No trained checkpoint found.",
+    "Current configuration differs from archived 12-pressure-sensor model.",
+    "Tracking combines selected CFD candidate first25 branches; direct main-case lift trace was not archived. Prefix correspondence was checked against later recorded sensor histories.",
+    "Use controller sample index: current CFD templates use steadyState/SIMPLE; this evidence does not establish physical transient accuracy."
+  ],
+  "files": [
+    {
+      "path": "candidate_statistics.csv",
+      "sha256": "d21af1f35a8d2b907672869b2cd47894ec928105faae54c169213b2a7afc8008",
+      "bytes": 183633
+    },
+    {
+      "path": "historical_sensors.json",
+      "sha256": "0b71d9a1bf36ae9b753165c54f9b6333c3ac4c2f82c5f2397359e99abf773f8c",
+      "bytes": 1384
+    },
+    {
+      "path": "lift_target_sequence.csv",
+      "sha256": "0ad34e19c08f47f1c9c10fa7f553355d6c7f3de6c2e543499b2aaab0074065d2",
+      "bytes": 20911
+    },
+    {
+      "path": "metrics.json",
+      "sha256": "40c89dda5e7f29aa1a7729b9b0bc33a44fb998a524e5439262cbe4fb9b0fb8fc",
+      "bytes": 834
+    },
+    {
+      "path": "points.npy",
+      "sha256": "48a21f2aaa8c4d2f396207aa1e7de225c8eff01a50048e7c5c04478e9b05116b",
+      "bytes": 57728
+    },
+    {
+      "path": "representative_metadata.json",
+      "sha256": "a17b41cf5b8d5753195eb26bf741e5b23497e2e91a0ac44534dda1d24a16e8dc",
+      "bytes": 193
+    },
+    {
+      "path": "representative_prediction.npz",
+      "sha256": "4611f6416f90c3e83ea5e345c1401a05ece1085ea89c8182c189717b307486d6",
+      "bytes": 1311313
+    },
+    {
+      "path": "representative_raw_cfd_frame0.csv",
+      "sha256": "5428217f358823042e27c5eb6d24ba1a11e26d3013379d1bf23c4cddd125032b",
+      "bytes": 95864
+    },
+    {
+      "path": "representative_row.json",
+      "sha256": "d21c233b401bac1b0741e2b78eb132bff82a8fabf177b98cdebf797e2ebcfff0",
+      "bytes": 1716
+    },
+    {
+      "path": "run_metadata.json",
+      "sha256": "3cd560b8ddac33509cda9c1801bf892bc988171671aaf78a4d6e3884cb6c0592",
+      "bytes": 1739
+    },
+    {
+      "path": "selected_tracking.csv",
+      "sha256": "7b9c9a56f29d6cdb94155d9d4e093843768736371edd0960d26ef69b6dfcb451",
+      "bytes": 61965
+    },
+    {
+      "path": "selected_tracking.npz",
+      "sha256": "47ae8f3fdda2fc78a395fa380780cb5c50fd73eb79f8539b60f8029010dfb869",
+      "bytes": 16697
+    },
+    {
+      "path": "training_events.csv",
+      "sha256": "a4d2333abee127061a186f810081cf8c8280cd90862cad403d0b16b2d86e8165",
+      "bytes": 158
+    }
+  ]
+}

@@ -1,0 +1,157 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import *
+from shred_utils.functions import *
+import matplotlib.pyplot as plt
+import numpy as np
+import shutil
+
+
+def extract_measurement_window(states_vec: np.ndarray) -> tuple[np.ndarray, int]:
+    """
+    Returns the sensor window used for SHRED along with the starting
+    time index of that window in the global timeline.
+    """
+    required_history = shred_lags + meas_offset
+    if states_vec.shape[0] < required_history:
+        raise RuntimeError(
+            f"Need at least {required_history} CFD snapshots; "
+            f"only {states_vec.shape[0]} available."
+        )
+
+    start_idx = states_vec.shape[0] - required_history
+    end_idx = states_vec.shape[0] - meas_offset
+
+    measurements = states_vec[start_idx:end_idx, sensor_ids, :]
+    measurements = measurements.reshape(shred_lags, -1)
+
+    return measurements, start_idx
+
+
+def compose_sensor_tensor(
+    measurements: np.ndarray,
+    start_idx: int,
+    parameters: np.ndarray,
+    candidate: float | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Concatenates the measurements with the parameter history that is
+    shifted forward by meas_delta_t. When candidate is provided, it
+    is used to fill any parameter entries that extend beyond the
+    current parameter history.
+    """
+    omega_hist = []
+    for lag_idx in range(shred_lags):
+        param_idx = start_idx + lag_idx + meas_offset
+        if param_idx < len(parameters):
+            omega_hist.append(parameters[param_idx])
+        elif candidate is not None:
+            omega_hist.append(float(candidate))
+        else:
+            raise RuntimeError(
+                "Parameter history shorter than required and no candidate value provided."
+            )
+
+    omega_hist = np.asarray(omega_hist, dtype=float)
+    sensors = np.concatenate([measurements, omega_hist[:, None]], axis=1)[None, ...]
+    return sensors, omega_hist
+
+
+#### INITIAL LOADS ####
+
+engine_pod, _, points_vec = DataLoad_Training("case_omega")
+
+# Warm-start state and parameter histories using the dataset.
+states_dataset, _, parameters_dataset = data_load("case_omega")
+states_vec = states_dataset[0, : shred_lags + meas_offset, ...].copy()
+parameters = np.asarray(parameters_dataset[0, : shred_lags + meas_offset], dtype=float)
+
+x = tensor_spatial_component(points_vec, 0)
+y = tensor_spatial_component(points_vec, 1)
+
+x_meas = x[sensor_ids]
+y_meas = y[sensor_ids]
+
+print(f"states_vec: {states_vec.shape}")
+possible_omegas = np.linspace(-omega_extreme, omega_extreme, num=N_omegas_decoded)
+print(possible_omegas)
+
+t = states_vec.shape[0] - meas_offset
+cwd = os.getcwd()
+
+while t < shred_lags + meas_offset * N_cycles:
+    os.chdir(cwd)
+
+    measurements, window_start_idx = extract_measurement_window(states_vec)
+    print(f"measurements_flat = {measurements}")
+
+    loss_vec = []
+
+    for omega in possible_omegas:
+        sensors, omega_hist = compose_sensor_tensor(
+            measurements=measurements,
+            start_idx=window_start_idx,
+            parameters=parameters,
+            candidate=omega,
+        )
+
+        latent = engine_pod.sensor_to_latent(sensors)
+        recon = engine_pod.decode(latent)
+
+        ux_pred = np.asarray(recon["States_x"])
+        uy_pred = np.asarray(recon["States_y"])
+
+        mag_pred = np.sqrt(ux_pred[-1] ** 2 + uy_pred[-1] ** 2)
+        vmax = np.max(mag_pred)
+
+        shred_plot(x, y, x_meas, y_meas, mag_pred, 0, vmax, omega, t, "show")
+        loss = energy_dissipated(ux_pred[-1], uy_pred[-1])
+        print(loss)
+
+        loss_vec.append(loss)
+
+    plt.plot(possible_omegas, loss_vec, "ro")
+    plt.savefig(f"shred_images/{t}.png", dpi=200)
+
+    print(f"Loss vec: {loss_vec}")
+
+    loss_vec = np.asarray(loss_vec)
+    omega_choice = np.argmax(loss_vec)
+    print(f"VALMAX = {possible_omegas[omega_choice]}")
+
+    parameters = OpenFoam_launcher(parameters, possible_omegas[omega_choice])
+
+    mag_x_cfd, mag_y_cfd, states_vec = mag_cfd_extractor(parameters)
+    mag_cfd = np.sqrt(mag_x_cfd**2 + mag_y_cfd**2)
+
+    measurements_check, check_start_idx = extract_measurement_window(states_vec)
+    sensors_check, omega_hist_check = compose_sensor_tensor(
+        measurements=measurements_check,
+        start_idx=check_start_idx,
+        parameters=parameters,
+        candidate=None,
+    )
+
+    latent = engine_pod.sensor_to_latent(sensors_check)
+    recon = engine_pod.decode(latent)
+
+    mag_x_shred = np.asarray(recon["States_x"])
+    mag_y_shred = np.asarray(recon["States_y"])
+    mag_shred = np.sqrt(mag_x_shred**2 + mag_y_shred**2)
+
+    for i in range(mag_shred.shape[0]):
+        timestep = t - mag_shred.shape[0] + i + 1
+        shred_comp_plot(
+            x=x,
+            y=y,
+            x_meas=x_meas,
+            y_meas=y_meas,
+            mag_pred=mag_shred[i],
+            mag_true=mag_cfd[timestep + meas_offset],
+            parameter=parameters[timestep + meas_offset],
+            timestep=timestep + meas_offset,
+            loss_min_pred=0,
+            loss_cfd=0,
+            type="save",
+        )
+
+    t += meas_offset

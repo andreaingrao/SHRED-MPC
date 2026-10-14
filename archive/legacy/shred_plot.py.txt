@@ -1,0 +1,243 @@
+import os, re
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from shred_utils.input_var import *
+from shred_utils.global_var import *
+from shred_utils.functions import tensor_spatial_component
+
+def numpy_loader(numpy_dir):
+
+    states_vec = np.load(os.path.join(numpy_dir, "states_vec.npy"))
+
+    measurement_ids= np.load(os.path.join(numpy_dir, "measurement_ids.npy"))
+    
+    points_vec  = np.load(os.path.join(numpy_dir, "points_vec.npy"))
+
+    parameters_vec  = np.load(os.path.join(numpy_dir, "parameters_vec.npy"))
+
+    def _load_npz(fname):
+        with np.load(fname, allow_pickle=False) as data:
+            return {k: np.array(v) for k, v in data.items()}
+
+    recon = _load_npz(os.path.join(NUMPY_DIRECTORY, "recon.npz"))
+
+    return (states_vec, measurement_ids, points_vec,
+            parameters_vec, recon)
+
+print(f"\n----------------------\nLoading NumPy Data ...\n----------------------\n")
+states_vec, measurement_ids, points_vec, parameters_vec, recon = numpy_loader(NUMPY_DIRECTORY)
+
+
+parameters_num = parameters_vec.shape[0]
+
+print(measurement_ids)
+x_meas = points_vec[measurement_ids, 0]
+y_meas = points_vec[measurement_ids, 1]
+
+print("\n---------------\nParameters: \n---------------\n")
+
+for i in range(0, parameters_num):
+
+    print(f"\n[{i}] = {parameters_vec[i]} ")
+
+
+case_id = int(input("\n[Select Parameter id]: "))
+    
+post_proc_output = int(input("\n------------------------------------\nPress [0] if you want a single timestep, \npress [1] if you want every timestep\n------------------------------------\n"))
+
+states_x = tensor_spatial_component(states_vec, 0)
+
+states_y = tensor_spatial_component(states_vec, 1)
+
+##### SINGLE TIMESTEP #####
+
+if post_proc_output == 0:
+
+    timestep = int(input("\nSelect timestep: "))
+
+    ### PRE-PROC ###
+
+    # ground truth
+    ux_true = np.asarray(states_x[case_id, timestep]).reshape(-1)
+    uy_true = np.asarray(states_y[case_id, timestep]).reshape(-1)
+
+    print(ux_true.shape)
+
+    # reconstruction (already in split order)
+    ux_pred = np.asarray(recon["States_x"][case_id, timestep]).reshape(-1)
+    uy_pred = np.asarray(recon["States_y"][case_id, timestep]).reshape(-1)
+
+    x = points_vec[:, 0].astype(float)
+    y = points_vec[:, 1].astype(float)
+
+    mag_true = np.sqrt(ux_true**2 + uy_true**2)
+    mag_pred = np.sqrt(ux_pred**2 + uy_pred**2)
+    mag_delta= np.abs(mag_pred-mag_true)
+
+    vmin = float(min(mag_true.min(), mag_pred.min()))
+    vmax = float(max(mag_true.max(), mag_pred.max()))
+
+    err   = float(max(mag_delta))
+
+    err_abs = err / vmax
+
+    #### PLOT ####
+
+    # create figure and axes
+    fig, axs = plt.subplots(3, 1, figsize=(12, 9), constrained_layout=True)
+
+    # CFD plot
+    ax = axs[0]
+    scatt0 = ax.scatter(x, y, c=mag_true, cmap=cmap, s=size,
+                    edgecolor="none", vmin=vmin, vmax=vmax)
+    
+    ax.scatter(x_meas, y_meas, c = circle_colour, s = circle_size, edgecolor = "none") # measurements
+
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_title(f"CFD result, omega = {parameters_vec[case_id]:.3f}, time = {timestep}")
+
+    # SHRED recon plot
+    ax = axs[1]
+    scatt1 = ax.scatter(x, y, c=mag_pred, cmap=cmap, s=size,
+                    edgecolor="none", vmin=vmin, vmax=vmax)
+    
+    ax.scatter(x_meas, y_meas, c = circle_colour, s = circle_size, edgecolor = "none") 
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_title(f"SHRED reconstruction, omega = {parameters_vec[case_id]:.3f}, time = {timestep}")
+
+    fig.colorbar(mappable=scatt1, ax=axs[1], label="|U|", orientation='horizontal')
+
+    # error
+    ax = axs[2]
+    scatt2 = ax.scatter(x, y, c=mag_delta, cmap="Greys", s=size,
+                    edgecolor="none", vmin=0, vmax=err)
+    
+    ax.scatter(x_meas, y_meas, c = circle_colour, s = circle_size, edgecolor = "none") 
+
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_title(f"Error Magnitude: \n[error]= {err:.3f}, [normalized error]= {err_abs:.3f}")
+
+    post_proc_type = int(input("\n-------------------------------\nPress [0] to save image, \npress [1] to plot image\n-------------------------------\n"))
+
+    if post_proc_type == 0:
+
+        plt.savefig(f"shred_images/{parameters_vec[case_id]}_{timestep}.png", dpi=200)
+
+
+    elif post_proc_type == 1:
+        
+        plt.show()
+
+    else: 
+        ValueError("Invalid value input")
+
+    plt.close('all')
+
+###### EVERY TIMESTEP #####
+
+elif post_proc_output == 1:
+
+    timesteps = states_x.shape[1]
+
+    timestep = 0
+
+    ### PRE-PROC ###
+    # ground truth
+    ux_true = np.asarray(states_x[case_id, :]).reshape(-1)
+    uy_true = np.asarray(states_y[case_id, :]).reshape(-1)
+
+    # reconstruction (already in split order)
+    ux_pred = np.asarray(recon["States_x"][case_id, :]).reshape(-1)
+    uy_pred = np.asarray(recon["States_y"][case_id, :]).reshape(-1)
+
+
+    x = points_vec[:, 0].astype(float)
+    y = points_vec[:, 1].astype(float)
+
+    mag_true = np.sqrt(ux_true**2 + uy_true**2)
+    mag_pred = np.sqrt(ux_pred**2 + uy_pred**2)
+
+    mag_delta= np.abs(mag_pred-mag_true)
+
+    vmin = float(min(mag_true.min(), mag_pred.min()))
+    vmax = float(max(mag_true.max(), mag_pred.max()))
+
+    err   = float(max(mag_delta))
+
+    err_abs = err / vmax
+
+    while timestep < timesteps:
+           
+        ### PRE-PROC ###
+
+        # ground truth
+        ux_true = np.asarray(states_x[case_id, timestep]).reshape(-1)
+        uy_true = np.asarray(states_y[case_id, timestep]).reshape(-1)
+
+        # reconstruction (already in split order)
+        ux_pred = np.asarray(recon["States_x"][case_id, timestep]).reshape(-1)
+        uy_pred = np.asarray(recon["States_y"][case_id, timestep]).reshape(-1)
+
+        x = points_vec[:, 0].astype(float)
+        y = points_vec[:, 1].astype(float)
+
+        mag_true = np.sqrt(ux_true**2 + uy_true**2)
+        mag_pred = np.sqrt(ux_pred**2 + uy_pred**2)
+        mag_delta= np.abs(mag_pred-mag_true)
+
+        err = np.sqrt(sum(mag_delta ^ 2))
+
+        err_abs = err / np.sqrt(sum(mag_true ^ 2))
+
+        #### PLOT ####
+
+        # create figure and axes
+        fig, axs = plt.subplots(3, 1, figsize=(12, 9), constrained_layout=True)
+
+        # CFD plot
+        ax = axs[0]
+        scatt0 = ax.scatter(x, y, c=mag_true, cmap=cmap, s=size,
+                        edgecolor="none", vmin=vmin, vmax=vmax)
+        
+        ax.scatter(x_meas, y_meas, c = circle_colour, s = circle_size, edgecolor = "none") 
+        
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(f"CFD result, omega = {parameters_vec[case_id]:.3f}, time = {timestep}")
+
+        # SHRED recon plot
+        ax = axs[1]
+        scatt1 = ax.scatter(x, y, c=mag_pred, cmap=cmap, s=size,
+                        edgecolor="none", vmin=vmin, vmax=vmax)
+            
+        ax.scatter(x_meas, y_meas, c = circle_colour, s = circle_size, edgecolor = "none") 
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(f"SHRED reconstruction, omega = {parameters_vec[case_id]:.3f}, time = {timestep}")
+
+        fig.colorbar(mappable=scatt1, ax=axs[1], label="|U|", orientation='horizontal')
+
+        # error
+        ax = axs[2]
+        scatt2 = ax.scatter(x, y, c=mag_delta, cmap="Greys", s=size,
+                        edgecolor="none", vmin=0, vmax=err)
+            
+        ax.scatter(x_meas, y_meas, c = circle_colour, s = circle_size, edgecolor = "none") 
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(f"Error Magnitude: \n[Max error]= {err:.3f}, [Normalized max error]= {err_abs:.3f}")
+
+
+        plt.savefig(f"shred_images/{parameters_vec[case_id]}_{timestep}.png", dpi=200)
+        plt.close('all')
+
+        print(f"\n[Timestep] = {timestep}")
+        timestep = timestep + 1
+
+
+else: 
+    ValueError("Invalid value input")

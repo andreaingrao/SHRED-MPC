@@ -1,0 +1,29 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  any                                   |
+|   \\  /    A nd           |                                                 |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+sampleDict
+{
+    interpolationScheme cellPoint;   // better accuracy than nearestCell
+
+    setFormat raw;   // use raw ASCII, easy to parse with awk/csv tools
+
+    fields (U);      // only velocity
+
+    sets
+    (
+        uniformGrid
+        {
+            type uniform;
+            axis xyz;    // 3D cartesian coordinates
+            start ( -15 -10 0);   // <-- lower corner (x,y,z)
+            end   (  80 10 0 );   // <-- upper corner (x,y,z)
+            nPoints ( 50 50 1 ); // <-- grid resolution (X,Y,Z)
+        }
+    );
+}
+

@@ -1,0 +1,136 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import * 
+from shred_utils.functions import *
+import matplotlib.pyplot as plt
+import shutil
+
+
+#### INITIAL LOADS ####
+
+engine_pod, state_0, points_vec = DataLoad_Training("case_omega") 
+# state_0 first meas_delta_t states (they don't change in any case)
+
+x = tensor_spatial_component(points_vec, 0)
+y = tensor_spatial_component(points_vec, 1)
+
+x_meas = x[sensor_ids]
+y_meas = y[sensor_ids]
+
+
+states_vec = state_0
+
+print(f"states_vec: {states_vec.shape}")
+measurements = []
+parameters   = []
+
+
+for i in range(2 *shred_lags):
+    parameters.append(omega0)   
+
+t = shred_lags *2
+
+cwd = os.getcwd()
+
+
+#### MPC CYCLE ####
+
+while t < shred_lags *2 + meas_offset * N_cycles:
+
+
+    os.chdir(cwd)
+
+    measurements = states_vec[- 2*shred_lags :, sensor_ids, ...] # [5, 2]
+    measurements = np.concatenate([measurements[...,  0], measurements[..., 1]], axis = -1)
+
+    print(f"measurements_flat = {measurements}")
+
+    loss_vec = []
+    
+    #### LOSS PREDICTIVE EVALUATION ####
+    possible_omegas = [parameters[-1] - PARAMETER_DELTA, parameters[-1], parameters[-1] + PARAMETER_DELTA]
+
+    for i in range (len(possible_omegas)):
+
+        omega = float(possible_omegas[i])
+        
+        omega_vec = np.concatenate([parameters[-shred_lags:], np.full(shred_lags, omega, dtype=float)]) # questo funziona solo se il meas delta t e gli shred lags hanno la stessa lunghezza
+
+
+        sensors = np.concatenate([measurements, omega_vec[:, None], omega_vec[:, None]], axis=-1)[None, ...]
+
+        latent = engine_pod.sensor_to_latent(sensors)
+        recon = engine_pod.decode(latent)
+
+        ux_pred = np.asarray(recon["States_x"])
+        uy_pred = np.asarray(recon["States_y"])
+
+        print(f" ux_pred {ux_pred.shape}")
+        ux_last = ux_pred[-1, :]
+        uy_last = uy_pred[-1, :]
+        
+
+        mag_pred = np.sqrt(ux_pred**2 + uy_pred**2)
+        vmax = np.max(mag_pred)
+        for j in range (shred_lags):
+            shred_plot(x, y, x_meas, y_meas, mag_pred[shred_lags + j], 0, vmax, omega, t, 'save')
+
+        loss = energy_dissipated(ux_last, uy_last)
+
+
+        loss_vec.append(loss)
+    
+
+    plt.plot(possible_omegas, loss_vec, 'ro')
+    plt.savefig(f"shred_images/{t}.png", dpi=200)
+    
+
+    print(f"Loss vec: {loss_vec}")
+
+    loss_vec = np.asarray(loss_vec)
+    omega_choice= np.argmax(loss_vec)
+
+    print(f"VALMAX = {possible_omegas[omega_choice]}")
+
+
+    #### COMPARATIVE PLOT CREATION #### 
+
+    measurements_check = states_vec[-2 * shred_lags:, sensor_ids, ...]
+    measurements_check_flat = np.concatenate([measurements_check[:, :, 0], measurements_check[:, :, 1]], axis = -1)
+
+    parameters = OpenFoam_launcher(parameters, possible_omegas[omega_choice])
+
+    mag_x_cfd, mag_y_cfd, states_vec = mag_cfd_extractor(parameters)
+    mag_cfd = np.sqrt(mag_x_cfd**2 + mag_y_cfd**2)
+    
+    omega_hist = np.asarray(parameters[-2 * shred_lags:], dtype=float)  # real omega history
+    sensors_check = np.concatenate([measurements_check_flat, omega_hist[:, None], omega_hist[:, None]],axis=-1)[None, ...]  # -> (1, shred_lags, n_meas + 1)
+
+    latent = engine_pod.sensor_to_latent(sensors_check)
+    recon  = engine_pod.decode(latent)
+
+    mag_x_shred = np.asarray(recon["States_x"])
+    mag_y_shred = np.asarray(recon["States_y"])
+
+    print(f"mag_x_shred = {mag_x_shred.shape}")
+    mag_shred = np.sqrt(mag_x_shred**2 + mag_y_shred**2)
+    
+    vmax = max(mag_cfd[-1, ...])
+
+    for i in range(shred_lags):
+
+        shred_comp_plot(x=x, y=y, x_meas=x_meas, y_meas=y_meas, mag_pred=mag_shred[i + shred_lags, :], mag_true=mag_cfd[i + t, :], vmax = vmax, parameter= parameters[i + t], timestep=i + t, loss_min_pred=0, loss_cfd=0, type='save')
+
+
+    t = t + meas_offset
+
+
+
+
+        
+    
+
+
+
+
+
+

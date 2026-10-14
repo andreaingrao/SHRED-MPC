@@ -1,0 +1,36 @@
+#!/bin/bash
+# ==============================
+# OpenFOAM Parallel Run Script
+# ==============================
+
+# Number of processors
+NP=16   # change if you want fewer/more cores
+
+# Stop on first error
+set -e
+
+echo "----------------------------------"
+echo " Running blockMesh..."
+echo "----------------------------------"
+blockMesh
+
+echo "----------------------------------"
+echo " Decomposing domain for $NP cores..."
+echo "----------------------------------"
+decomposePar -force
+
+echo "----------------------------------"
+echo " Running solver in parallel..."
+echo "----------------------------------"
+mpirun -np $NP simpleFoam -parallel > log.simpleFoam
+
+echo "----------------------------------"
+echo " Reconstructing case..."
+echo "----------------------------------"
+reconstructPar
+
+echo "----------------------------------"
+echo " Launching ParaView..."
+echo "----------------------------------"
+paraFoam
+

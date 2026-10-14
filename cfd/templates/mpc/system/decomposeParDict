@@ -1,0 +1,32 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      decomposeParDict;
+}
+
+numberOfSubdomains 16;    // Number of cores / processes
+
+// "scotch" is usually the most robust for complex geometries
+method          scotch;
+
+// Optional: If you wanted manual control, you could use "simple" with n (nx ny nz)
+// but scotch figures this out automatically.
+simpleCoeffs
+{
+    n               (1 1 1);  // Not used with scotch
+    delta           0.001;
+}
+
+hierarchicalCoeffs
+{
+    n               (1 1 1);  // Not used with scotch
+    delta           0.001;
+    order           xyz;
+}
+
+distributed     no;
+roots           ();
+

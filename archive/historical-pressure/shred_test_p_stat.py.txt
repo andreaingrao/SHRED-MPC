@@ -1,0 +1,1368 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import *
+from shred_utils.functions import *
+from shred_utils.functions import _foam_time_directories
+import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
+import csv
+import json
+import shutil
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
+
+#### INITIAL LOADS ####
+
+engine_pod, states_vec, points_vec, manager_pod = DataLoad_Training_p("case_omega")
+initial_states_vec = np.asarray(states_vec).copy()
+
+# points_vec = [n_points, 2]
+
+x = points_vec[..., 0]
+y = points_vec[..., 1]
+
+
+# sensor coordinates, for graphic purposes
+
+x_meas = x[sensor_ids]
+y_meas = y[sensor_ids]
+
+
+# Rolling pressure measurements and control history
+
+measurements = []
+parameters_vec = []
+parameters_cfd_sequence = []
+
+lift_pred = []
+lift_real = []
+
+# Cycle-level predictor statistics used by the evolution plot.
+stat_cycle_vec = []
+stat_simulation_vec = []
+state_error_median_history = []
+state_error_q1_history = []
+state_error_q3_history = []
+lift_error_median_history = []
+lift_error_q1_history = []
+lift_error_q3_history = []
+parameter_mistake_history = []
+cumulative_parameter_mistakes = 0
+all_state_error_candidates = []
+all_lift_error_candidates = []
+heatmap_incoming_omegas = []
+heatmap_outgoing_omegas = []
+heatmap_state_errors = []
+heatmap_lift_errors = []
+heatmap_wrong_incoming_omegas = []
+heatmap_wrong_outgoing_omegas = []
+heatmap_selected_incoming_omegas = []
+heatmap_selected_outgoing_omegas = []
+
+
+parameters_vec.append(omega0)
+
+for _ in range(shred_lags):
+    parameters_cfd_sequence.append(omega0)
+
+cwd = os.getcwd()
+
+t = shred_lags
+
+if CONTROL_HORIZON <= 0 or CONTROL_HORIZON > meas_delta_t:
+    raise ValueError(f"CONTROL_HORIZON must be in [1, {meas_delta_t}], got {CONTROL_HORIZON}")
+if MPC_COST_HORIZON < CONTROL_HORIZON or MPC_COST_HORIZON > meas_delta_t:
+    raise ValueError(
+        f"MPC_COST_HORIZON must be in [{CONTROL_HORIZON}, {meas_delta_t}], "
+        f"got {MPC_COST_HORIZON}"
+    )
+if MPC_OMEGA_GRID_SIZE < 3 or MPC_OMEGA_GRID_SIZE % 2 == 0:
+    raise ValueError(f"MPC_OMEGA_GRID_SIZE must be an odd integer >= 3, got {MPC_OMEGA_GRID_SIZE}")
+if MPC_OMEGA_SEARCH_RADIUS <= 0:
+    raise ValueError(f"MPC_OMEGA_SEARCH_RADIUS must be positive, got {MPC_OMEGA_SEARCH_RADIUS}")
+if MPC_OMEGA_MIN >= MPC_OMEGA_MAX:
+    raise ValueError(f"Invalid omega bounds [{MPC_OMEGA_MIN}, {MPC_OMEGA_MAX}]")
+if MPC_LIFT_DEADBAND < 0:
+    raise ValueError(f"MPC_LIFT_DEADBAND must be non-negative, got {MPC_LIFT_DEADBAND}")
+if MPC_OSCILLATION_WEIGHT < 0 or MPC_CONTROL_MOVE_WEIGHT < 0:
+    raise ValueError("MPC objective weights must be non-negative")
+
+STAT_NUM_SIMULATIONS = 15
+STAT_N_CYCLES = 100
+STAT_OMEGA_GRID_SIZE = 5
+STATISTICS_START_TIMESTEP = 250
+# Global cadence across simulation resets. With five candidates, each block
+# contributes up to 50 * 5 = 250 candidate comparisons before a new model.
+STAT_RETRAIN_EVERY_CYCLES = 50
+STAT_OMEGA_BIN_WIDTH = (
+    2.0 * MPC_OMEGA_SEARCH_RADIUS / (STAT_OMEGA_GRID_SIZE - 1)
+)
+STAT_RELATIVE_L2_EPSILON = 1.0e-12
+STAT_SAVE_SHRED_FIELDS = True
+STAT_RUN_ID = datetime.now().strftime("run_%Y%m%d_%H%M%S_%f")
+STAT_OUTPUT_ROOT = "shred_stat_results"
+STAT_OUTPUT_DIR = os.path.join(STAT_OUTPUT_ROOT, STAT_RUN_ID)
+STAT_CFD_OUTPUT_ROOT = os.path.join(STAT_OUTPUT_DIR, "cfd_candidates")
+STAT_CANDIDATE_CSV = os.path.join(STAT_OUTPUT_DIR, "candidate_statistics.csv")
+STAT_TRAINING_EVENTS_CSV = os.path.join(STAT_OUTPUT_DIR, "training_events.csv")
+STAT_AGGREGATE_CSV = os.path.join(
+    STAT_OUTPUT_ROOT,
+    "candidate_statistics_all_runs.csv",
+)
+os.makedirs(STAT_OUTPUT_DIR, exist_ok=True)
+print(f"Statistics start at controller timestep {STATISTICS_START_TIMESTEP}")
+print(f"Statistical run output: {STAT_OUTPUT_DIR}")
+
+training_generation = 0
+active_training_id = f"{STAT_RUN_ID}_training_{training_generation:03d}"
+completed_mpc_cycles = 0
+
+
+STAT_CANDIDATE_FIELDS = [
+    "run_id",
+    "simulation_id",
+    "simulation_cycle",
+    "controller_timestep",
+    "eligible_for_statistics",
+    "lift_target",
+    "candidate_id",
+    "incoming_omega",
+    "outgoing_omega",
+    "delta_omega",
+    "pressure_relative_l2_error",
+    "pressure_error_l2_norm",
+    "pressure_cfd_l2_norm",
+    "lift_relative_l2_error",
+    "lift_error_l2_norm",
+    "lift_cfd_l2_norm",
+    "shred_lift_mean",
+    "cfd_lift_mean",
+    "shred_lift_std",
+    "cfd_lift_std",
+    "shred_tracking_cost",
+    "cfd_tracking_cost",
+    "shred_oscillation_cost",
+    "cfd_oscillation_cost",
+    "shred_move_cost",
+    "cfd_move_cost",
+    "shred_total_cost",
+    "cfd_total_cost",
+    "shred_cost_rank",
+    "cfd_cost_rank",
+    "shred_selected",
+    "cfd_selected",
+    "choice_mistake",
+    "cfd_best_cost_margin",
+    "selected_cfd_regret",
+    "selected_cfd_normalized_regret",
+    "candidate_cfd_directory",
+    "shred_prediction_archive",
+]
+
+
+def initialize_statistical_run_output():
+    """Create durable run metadata and the candidate CSV header."""
+    with open(STAT_CANDIDATE_CSV, "x", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=STAT_CANDIDATE_FIELDS)
+        writer.writeheader()
+
+    metadata = {
+        "run_id": STAT_RUN_ID,
+        "created_at": datetime.now().astimezone().isoformat(),
+        "candidate_statistics_csv": os.path.basename(STAT_CANDIDATE_CSV),
+        "aggregate_statistics_csv": os.path.relpath(
+            STAT_AGGREGATE_CSV,
+            STAT_OUTPUT_DIR,
+        ),
+        "cfd_candidate_root": os.path.relpath(
+            STAT_CFD_OUTPUT_ROOT,
+            STAT_OUTPUT_DIR,
+        ),
+        "save_shred_fields": STAT_SAVE_SHRED_FIELDS,
+        "number_of_online_simulations": STAT_NUM_SIMULATIONS,
+        "cycles_per_simulation": STAT_N_CYCLES,
+        "candidate_grid_size": STAT_OMEGA_GRID_SIZE,
+        "retrain_every_completed_cycles": STAT_RETRAIN_EVERY_CYCLES,
+        "statistics_start_timestep": STATISTICS_START_TIMESTEP,
+        "control_horizon": CONTROL_HORIZON,
+        "prediction_horizon": MPC_COST_HORIZON,
+        "omega_min": MPC_OMEGA_MIN,
+        "omega_max": MPC_OMEGA_MAX,
+        "omega_search_radius": MPC_OMEGA_SEARCH_RADIUS,
+        "csv_columns": STAT_CANDIDATE_FIELDS,
+        "points_file": "points_vec.npy",
+        "training_events_csv": os.path.basename(STAT_TRAINING_EVENTS_CSV),
+        "candidate_run_id_semantics": (
+            "Each run_id identifies one independently trained SHRED model."
+        ),
+    }
+    with open(os.path.join(STAT_OUTPUT_DIR, "run_metadata.json"), "x") as file:
+        json.dump(metadata, file, indent=2, sort_keys=True)
+    np.save(
+        os.path.join(STAT_OUTPUT_DIR, "points_vec.npy"),
+        np.asarray(points_vec),
+    )
+    with open(STAT_TRAINING_EVENTS_CSV, "x", newline="") as csv_file:
+        writer = csv.DictWriter(
+            csv_file,
+            fieldnames=[
+                "training_id",
+                "training_generation",
+                "started_after_completed_mpc_cycles",
+                "recorded_at",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "training_id": active_training_id,
+                "training_generation": training_generation,
+                "started_after_completed_mpc_cycles": 0,
+                "recorded_at": datetime.now().astimezone().isoformat(),
+            }
+        )
+
+
+def _candidate_row_key(row):
+    return (
+        row["run_id"],
+        row["simulation_id"],
+        row["simulation_cycle"],
+        row["candidate_id"],
+    )
+
+
+def _validated_candidate_reader(csv_file, csv_path):
+    reader = csv.DictReader(csv_file)
+    if reader.fieldnames != STAT_CANDIDATE_FIELDS:
+        raise ValueError(
+            f"Candidate CSV schema mismatch in {csv_path}: "
+            f"expected {STAT_CANDIDATE_FIELDS}, got {reader.fieldnames}"
+        )
+    return reader
+
+
+def reconcile_aggregate_statistics():
+    """Import rows missing from the master CSV without duplicating cycles."""
+    aggregate_path = Path(STAT_AGGREGATE_CSV)
+    if not aggregate_path.exists():
+        with aggregate_path.open("x", newline="") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=STAT_CANDIDATE_FIELDS)
+            writer.writeheader()
+
+    with aggregate_path.open(newline="") as csv_file:
+        aggregate_reader = _validated_candidate_reader(csv_file, aggregate_path)
+        known_keys = {_candidate_row_key(row) for row in aggregate_reader}
+
+    missing_rows = []
+    for run_csv in sorted(Path(STAT_OUTPUT_ROOT).glob("run_*/candidate_statistics.csv")):
+        with run_csv.open(newline="") as csv_file:
+            run_reader = _validated_candidate_reader(csv_file, run_csv)
+            for row in run_reader:
+                key = _candidate_row_key(row)
+                if key not in known_keys:
+                    missing_rows.append(row)
+                    known_keys.add(key)
+
+    if missing_rows:
+        with aggregate_path.open("a", newline="") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=STAT_CANDIDATE_FIELDS)
+            writer.writerows(missing_rows)
+    print(
+        f"Aggregate candidate data: {len(known_keys)} rows "
+        f"({len(missing_rows)} recovered from per-run CSVs)"
+    )
+
+
+def load_previous_runs_for_aggregate_plots():
+    """Seed heatmap/boxplot arrays from all already persisted eligible rows."""
+    with open(STAT_AGGREGATE_CSV, newline="") as csv_file:
+        reader = _validated_candidate_reader(csv_file, STAT_AGGREGATE_CSV)
+        for row in reader:
+            if int(row["eligible_for_statistics"]) != 1:
+                continue
+            incoming_omega = float(row["incoming_omega"])
+            outgoing_omega = float(row["outgoing_omega"])
+            heatmap_incoming_omegas.append(incoming_omega)
+            heatmap_outgoing_omegas.append(outgoing_omega)
+            heatmap_state_errors.append(float(row["pressure_relative_l2_error"]))
+            heatmap_lift_errors.append(float(row["lift_relative_l2_error"]))
+            if int(row["shred_selected"]) == 1:
+                heatmap_selected_incoming_omegas.append(incoming_omega)
+                heatmap_selected_outgoing_omegas.append(outgoing_omega)
+                if int(row["choice_mistake"]) == 1:
+                    heatmap_wrong_incoming_omegas.append(incoming_omega)
+                    heatmap_wrong_outgoing_omegas.append(outgoing_omega)
+
+
+def append_candidate_statistics(rows):
+    """Append a cycle to its run CSV and the cross-training master CSV."""
+    with open(STAT_CANDIDATE_CSV, "a", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=STAT_CANDIDATE_FIELDS)
+        writer.writerows(rows)
+    with open(STAT_AGGREGATE_CSV, "a", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=STAT_CANDIDATE_FIELDS)
+        writer.writerows(rows)
+
+
+def reset_current_training_evolution_statistics():
+    """Start a fresh evolution summary without clearing aggregate diagnostics."""
+    global cumulative_parameter_mistakes
+    stat_cycle_vec.clear()
+    stat_simulation_vec.clear()
+    state_error_median_history.clear()
+    state_error_q1_history.clear()
+    state_error_q3_history.clear()
+    lift_error_median_history.clear()
+    lift_error_q1_history.clear()
+    lift_error_q3_history.clear()
+    parameter_mistake_history.clear()
+    all_state_error_candidates.clear()
+    all_lift_error_candidates.clear()
+    cumulative_parameter_mistakes = 0
+
+
+def record_training_event():
+    with open(STAT_TRAINING_EVENTS_CSV, "a", newline="") as csv_file:
+        writer = csv.DictWriter(
+            csv_file,
+            fieldnames=[
+                "training_id",
+                "training_generation",
+                "started_after_completed_mpc_cycles",
+                "recorded_at",
+            ],
+        )
+        writer.writerow(
+            {
+                "training_id": active_training_id,
+                "training_generation": training_generation,
+                "started_after_completed_mpc_cycles": completed_mpc_cycles,
+                "recorded_at": datetime.now().astimezone().isoformat(),
+            }
+        )
+
+
+def retrain_shred_predictor():
+    """Train a new SHRED model while preserving the live online trajectory."""
+    global engine_pod, manager_pod, training_generation, active_training_id
+    print(
+        f"Retraining SHRED after {completed_mpc_cycles} completed MPC cycles..."
+    )
+    os.chdir(cwd)
+    new_engine, _, new_points, new_manager = DataLoad_Training_p("case_omega")
+    new_points = np.asarray(new_points)
+    if new_points.shape != points_vec.shape or not np.allclose(new_points, points_vec):
+        raise ValueError(
+            "Retraining returned a spatial grid different from the active MPC grid"
+        )
+
+    engine_pod = new_engine
+    manager_pod = new_manager
+    training_generation += 1
+    active_training_id = (
+        f"{STAT_RUN_ID}_training_{training_generation:03d}"
+    )
+    reset_current_training_evolution_statistics()
+    record_training_event()
+    print(
+        f"Activated {active_training_id}; online CFD and measurement histories preserved."
+    )
+
+
+initialize_statistical_run_output()
+reconcile_aggregate_statistics()
+load_previous_runs_for_aggregate_plots()
+
+
+def create_simulation_target(simulation_id):
+    seed = None if LIFT_TARGET_SEED is None else LIFT_TARGET_SEED + simulation_id
+    target_values, target_sequence = generate_lift_target_sequence(seed)
+    np.savetxt(
+        f"{STAT_OUTPUT_DIR}/lift_target_sequence_simulation_{simulation_id:03d}.csv",
+        np.column_stack(
+            [np.arange(len(target_sequence)), np.asarray(target_sequence)]
+        ),
+        delimiter=",",
+        header="timestep,lift_target",
+        comments="",
+        fmt=["%d", "%.6f"],
+    )
+    print(
+        f"Simulation {simulation_id + 1}/{STAT_NUM_SIMULATIONS} lift targets: "
+        f"{target_values} ({LIFT_TARGET_SEGMENT_LENGTH} samples each)"
+    )
+    return target_values, target_sequence
+
+
+class InitialOnlineCaseSnapshot:
+    """Restore the online OpenFOAM case before each independent simulation."""
+
+    def __init__(self):
+        self.case_dir = Path("MPC_OpenFoam").resolve()
+        prepare_openfoam_resume_checkpoint(str(self.case_dir))
+        time_directories = _foam_time_directories(str(self.case_dir))
+        if not time_directories:
+            raise FileNotFoundError(f"No OpenFOAM time directories in {self.case_dir}")
+
+        self.initial_time_names = {name for _, name in time_directories}
+        self.latest_time, self.latest_time_name = time_directories[-1]
+        self.latest_dir = self.case_dir / self.latest_time_name
+        self.temp = tempfile.TemporaryDirectory(prefix="shred_stat_initial_case_")
+        self.temp_dir = Path(self.temp.name)
+        self.latest_snapshot = self.temp_dir / "latest_time"
+        shutil.copytree(self.latest_dir, self.latest_snapshot)
+
+        self.auxiliary_files = [
+            self.case_dir / "system" / "timesteps.txt",
+            self.case_dir / "system" / "total_time.txt",
+            self.case_dir / "0" / "omega_sequence.txt",
+        ]
+        self.auxiliary_snapshots = {}
+        for index, path in enumerate(self.auxiliary_files):
+            if path.is_file():
+                snapshot = self.temp_dir / f"auxiliary_{index}"
+                shutil.copy2(path, snapshot)
+                self.auxiliary_snapshots[path] = snapshot
+            else:
+                self.auxiliary_snapshots[path] = None
+
+        self.generated_directories = [
+            self.case_dir / "VTK",
+            self.case_dir / "CSV_data",
+        ]
+        self.generated_snapshots = {}
+        for index, path in enumerate(self.generated_directories):
+            if path.is_dir():
+                snapshot = self.temp_dir / f"generated_{index}"
+                shutil.copytree(path, snapshot)
+                self.generated_snapshots[path] = snapshot
+            else:
+                self.generated_snapshots[path] = None
+
+    def restore(self):
+        for _, time_name in _foam_time_directories(str(self.case_dir)):
+            if time_name not in self.initial_time_names:
+                shutil.rmtree(self.case_dir / time_name)
+
+        if self.latest_dir.is_dir():
+            shutil.rmtree(self.latest_dir)
+        shutil.copytree(self.latest_snapshot, self.latest_dir)
+
+        for path, snapshot in self.auxiliary_snapshots.items():
+            if path.exists():
+                path.unlink()
+            if snapshot is not None:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(snapshot, path)
+
+        for path, snapshot in self.generated_snapshots.items():
+            if path.is_dir():
+                shutil.rmtree(path)
+            if snapshot is not None:
+                shutil.copytree(snapshot, path)
+
+    def close(self):
+        self.temp.cleanup()
+
+
+def statistical_candidate_omegas(current_omega):
+    """Return the configured number of unique candidates, shifted at bounds."""
+    lower = current_omega - MPC_OMEGA_SEARCH_RADIUS
+    upper = current_omega + MPC_OMEGA_SEARCH_RADIUS
+    full_width = 2.0 * MPC_OMEGA_SEARCH_RADIUS
+
+    if lower < MPC_OMEGA_MIN:
+        lower = MPC_OMEGA_MIN
+        upper = min(MPC_OMEGA_MAX, lower + full_width)
+    if upper > MPC_OMEGA_MAX:
+        upper = MPC_OMEGA_MAX
+        lower = max(MPC_OMEGA_MIN, upper - full_width)
+
+    candidates = np.round(
+        np.linspace(lower, upper, STAT_OMEGA_GRID_SIZE),
+        OMEGA_TABLE_DECIMALS,
+    )
+    candidates = np.unique(candidates)
+    if candidates.size != STAT_OMEGA_GRID_SIZE:
+        raise ValueError(
+            f"Expected {STAT_OMEGA_GRID_SIZE} unique statistical candidates, "
+            f"got {candidates}"
+        )
+    return candidates
+
+
+def relative_l2_error(prediction, reference, epsilon=STAT_RELATIVE_L2_EPSILON):
+    """Return ||prediction - reference||_2 / ||reference||_2."""
+    prediction = np.asarray(prediction, dtype=float)
+    reference = np.asarray(reference, dtype=float)
+    if prediction.shape != reference.shape:
+        raise ValueError(
+            "Relative L2 inputs must have identical shapes, got "
+            f"{prediction.shape} and {reference.shape}"
+        )
+
+    reference_norm = float(np.linalg.norm(reference.ravel()))
+    error_norm = float(np.linalg.norm((prediction - reference).ravel()))
+    return error_norm / max(reference_norm, epsilon)
+
+
+def save_statistical_evolution_plot():
+    cycles = np.asarray(stat_cycle_vec)
+    state_median = np.asarray(state_error_median_history)
+    state_q1 = np.asarray(state_error_q1_history)
+    state_q3 = np.asarray(state_error_q3_history)
+    lift_median = np.asarray(lift_error_median_history)
+    lift_q1 = np.asarray(lift_error_q1_history)
+    lift_q3 = np.asarray(lift_error_q3_history)
+    mistakes = np.asarray(parameter_mistake_history)
+    simulation_ids = np.asarray(stat_simulation_vec)
+
+    fig, axes = plt.subplots(3, 1, figsize=(10, 12), sharex=True, constrained_layout=True)
+    fig.suptitle(f"Current trained model: {active_training_id}", fontsize=14)
+
+    def plot_distribution_summary(
+        axis,
+        median,
+        q1,
+        q3,
+        colour,
+        title,
+    ):
+        axis.fill_between(
+            cycles,
+            q1,
+            q3,
+            color=colour,
+            alpha=0.20,
+            label="Cumulative IQR (25th-75th percentile)",
+        )
+        axis.plot(
+            cycles,
+            median,
+            color=colour,
+            linewidth=2.0,
+            label="Cumulative median",
+        )
+        axis.text(
+            0.99,
+            0.03,
+            f"Final median: {median[-1]:.2%}   |   "
+            f"IQR: {q1[-1]:.2%}-{q3[-1]:.2%}",
+            transform=axis.transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=9,
+            bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "0.8"},
+        )
+        axis.set_ylabel("Relative L2 error")
+        axis.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+        axis.set_ylim(bottom=0.0)
+        axis.set_title(title)
+        axis.grid(True, alpha=0.3)
+        axis.legend(loc="best")
+
+    plot_distribution_summary(
+        axes[0],
+        state_median,
+        state_q1,
+        state_q3,
+        "tab:blue",
+        "Cumulative full-field pressure-error distribution",
+    )
+    plot_distribution_summary(
+        axes[1],
+        lift_median,
+        lift_q1,
+        lift_q3,
+        "tab:green",
+        "Cumulative lift-trajectory error distribution",
+    )
+
+    cumulative_mistakes = np.cumsum(mistakes)
+    axes[2].step(
+        cycles,
+        cumulative_mistakes,
+        where="post",
+        color="tab:purple",
+        label="Cumulative wrong parameter choices",
+    )
+    wrong_cycles = cycles[mistakes.astype(bool)]
+    if wrong_cycles.size:
+        axes[2].scatter(
+            wrong_cycles,
+            cumulative_mistakes[mistakes.astype(bool)],
+            color="tab:red",
+            marker="x",
+            s=70,
+            label="Wrong choice this cycle",
+        )
+    axes[2].set_xlabel("MPC cycle")
+    axes[2].set_ylabel("Cumulative count")
+    axes[2].set_title("SHRED choice versus CFD-optimal choice")
+    axes[2].grid(True, alpha=0.3)
+    axes[2].legend(loc="best")
+
+    if simulation_ids.size > 1:
+        simulation_changes = np.flatnonzero(np.diff(simulation_ids) != 0) + 1
+        for change_index in simulation_changes:
+            boundary = 0.5 * (cycles[change_index - 1] + cycles[change_index])
+            for axis in axes:
+                axis.axvline(boundary, color="black", linestyle=":", alpha=0.5)
+
+    fig.savefig(f"{STAT_OUTPUT_DIR}/predictor_statistical_evolution.png", dpi=200)
+    plt.close(fig)
+
+
+def save_delta_omega_error_boxplots():
+    """Plot candidate relative errors grouped by the applied omega change."""
+    incoming = np.asarray(heatmap_incoming_omegas, dtype=float)
+    outgoing = np.asarray(heatmap_outgoing_omegas, dtype=float)
+    pressure_errors = np.asarray(heatmap_state_errors, dtype=float)
+    lift_errors = np.asarray(heatmap_lift_errors, dtype=float)
+    if not (
+        incoming.size
+        == outgoing.size
+        == pressure_errors.size
+        == lift_errors.size
+    ):
+        raise ValueError("Delta-omega boxplot arrays must have equal lengths")
+    if incoming.size == 0:
+        return
+
+    delta_omegas = np.round(outgoing - incoming, OMEGA_TABLE_DECIMALS)
+    delta_levels = np.unique(delta_omegas)
+    pressure_groups = [pressure_errors[delta_omegas == value] for value in delta_levels]
+    lift_groups = [lift_errors[delta_omegas == value] for value in delta_levels]
+    positions = np.arange(delta_levels.size)
+    labels = [
+        f"{value:+.3f}\n(n={group.size})"
+        for value, group in zip(delta_levels, pressure_groups)
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+    plot_settings = (
+        (axes[0], pressure_groups, "Full-field pressure relative L2 error", "tab:blue"),
+        (axes[1], lift_groups, "Lift-trajectory relative L2 error", "tab:green"),
+    )
+    for axis, groups, title, colour in plot_settings:
+        boxplot = axis.boxplot(
+            groups,
+            positions=positions,
+            widths=0.65,
+            patch_artist=True,
+            showmeans=True,
+            meanprops={
+                "marker": "D",
+                "markerfacecolor": "white",
+                "markeredgecolor": "black",
+                "markersize": 4,
+            },
+            medianprops={"color": "black", "linewidth": 1.5},
+        )
+        for box in boxplot["boxes"]:
+            box.set_facecolor(colour)
+            box.set_alpha(0.65)
+        axis.set_xticks(positions)
+        axis.set_xticklabels(labels)
+        axis.set_xlabel(r"Control increment $\Delta\omega$")
+        axis.set_ylabel("Relative L2 error")
+        axis.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+        axis.set_ylim(bottom=0.0)
+        axis.set_title(title)
+        axis.grid(axis="y", alpha=0.3)
+
+    fig.suptitle(
+        "Aggregate SHRED parametric prediction error by control increment",
+        fontsize=15,
+    )
+    fig.savefig(f"{STAT_OUTPUT_DIR}/relative_error_by_delta_omega.png", dpi=200)
+    plt.close(fig)
+
+
+def save_outgoing_omega_error_boxplots():
+    """Plot candidate relative errors grouped by the evaluated omega value."""
+    outgoing = np.asarray(heatmap_outgoing_omegas, dtype=float)
+    pressure_errors = np.asarray(heatmap_state_errors, dtype=float)
+    lift_errors = np.asarray(heatmap_lift_errors, dtype=float)
+    if not (outgoing.size == pressure_errors.size == lift_errors.size):
+        raise ValueError("Outgoing-omega boxplot arrays must have equal lengths")
+    if outgoing.size == 0:
+        return
+
+    outgoing = np.round(outgoing, OMEGA_TABLE_DECIMALS)
+    omega_levels = np.unique(outgoing)
+    pressure_groups = [pressure_errors[outgoing == value] for value in omega_levels]
+    lift_groups = [lift_errors[outgoing == value] for value in omega_levels]
+    positions = np.arange(omega_levels.size)
+    labels = [
+        f"{value:+.3f}\n(n={group.size})"
+        for value, group in zip(omega_levels, pressure_groups)
+    ]
+
+    figure_width = max(18.0, 0.55 * omega_levels.size)
+    fig, axes = plt.subplots(
+        2,
+        1,
+        figsize=(figure_width, 11),
+        sharex=True,
+        constrained_layout=True,
+    )
+    plot_settings = (
+        (axes[0], pressure_groups, "Full-field pressure relative L2 error", "tab:blue"),
+        (axes[1], lift_groups, "Lift-trajectory relative L2 error", "tab:green"),
+    )
+    for axis, groups, title, colour in plot_settings:
+        boxplot = axis.boxplot(
+            groups,
+            positions=positions,
+            widths=0.65,
+            patch_artist=True,
+            showmeans=True,
+            meanprops={
+                "marker": "D",
+                "markerfacecolor": "white",
+                "markeredgecolor": "black",
+                "markersize": 3,
+            },
+            medianprops={"color": "black", "linewidth": 1.3},
+        )
+        for box in boxplot["boxes"]:
+            box.set_facecolor(colour)
+            box.set_alpha(0.65)
+        axis.set_ylabel("Relative L2 error")
+        axis.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+        axis.set_ylim(bottom=0.0)
+        axis.set_title(title)
+        axis.grid(axis="y", alpha=0.3)
+
+    axes[-1].set_xticks(positions)
+    axes[-1].set_xticklabels(labels, rotation=60, ha="right")
+    axes[-1].set_xlabel(r"Candidate outgoing omega $\omega_{out}$")
+    fig.suptitle(
+        "Aggregate SHRED parametric prediction error by candidate omega",
+        fontsize=15,
+    )
+    fig.savefig(f"{STAT_OUTPUT_DIR}/relative_error_by_outgoing_omega.png", dpi=200)
+    plt.close(fig)
+
+
+def binned_omega_error_statistics(
+    incoming_omegas,
+    outgoing_omegas,
+    state_errors,
+    lift_errors,
+    wrong_incoming_omegas,
+    wrong_outgoing_omegas,
+    selected_incoming_omegas,
+    selected_outgoing_omegas,
+):
+    """Aggregate candidate errors and choice failures by omega transition."""
+    incoming_omegas = np.asarray(incoming_omegas, dtype=float)
+    outgoing_omegas = np.asarray(outgoing_omegas, dtype=float)
+    state_errors = np.asarray(state_errors, dtype=float)
+    lift_errors = np.asarray(lift_errors, dtype=float)
+
+    if not (
+        incoming_omegas.size
+        == outgoing_omegas.size
+        == state_errors.size
+        == lift_errors.size
+    ):
+        raise ValueError("Heatmap candidate arrays must have equal lengths")
+
+    omega_span = MPC_OMEGA_MAX - MPC_OMEGA_MIN
+    number_of_intervals = int(round(omega_span / STAT_OMEGA_BIN_WIDTH))
+    if not np.isclose(
+        number_of_intervals * STAT_OMEGA_BIN_WIDTH,
+        omega_span,
+        rtol=0.0,
+        atol=10 ** (-OMEGA_TABLE_DECIMALS),
+    ):
+        raise ValueError(
+            "The omega range must be divisible by the statistical candidate "
+            f"spacing ({STAT_OMEGA_BIN_WIDTH})"
+        )
+
+    # One equal-width heatmap cell per attainable statistical omega level.
+    # Half-step outer edges ensure that omega == 0 has its own cell rather
+    # than sharing a coarse interval with neighbouring values.
+    centers = np.linspace(
+        MPC_OMEGA_MIN,
+        MPC_OMEGA_MAX,
+        number_of_intervals + 1,
+    )
+    edges = np.concatenate(
+        (
+            [centers[0] - 0.5 * STAT_OMEGA_BIN_WIDTH],
+            centers + 0.5 * STAT_OMEGA_BIN_WIDTH,
+        )
+    )
+    number_of_bins = centers.size
+
+    def bin_ids(values):
+        ids = np.searchsorted(edges, values, side="right") - 1
+        return np.clip(ids, 0, number_of_bins - 1)
+
+    incoming_ids = bin_ids(incoming_omegas)
+    outgoing_ids = bin_ids(outgoing_omegas)
+
+    shape = (number_of_bins, number_of_bins)
+    state_median = np.full(shape, np.nan)
+    lift_median = np.full(shape, np.nan)
+    state_std = np.full(shape, np.nan)
+    lift_std = np.full(shape, np.nan)
+    sample_count = np.zeros(shape, dtype=int)
+
+    # Matrix indexing is [outgoing bin, incoming bin] so the plotted vertical
+    # axis is outgoing omega and the horizontal axis is incoming omega.
+    for outgoing_id in range(number_of_bins):
+        for incoming_id in range(number_of_bins):
+            mask = (incoming_ids == incoming_id) & (outgoing_ids == outgoing_id)
+            if not np.any(mask):
+                continue
+            state_values = state_errors[mask]
+            lift_values = lift_errors[mask]
+            state_median[outgoing_id, incoming_id] = float(np.median(state_values))
+            lift_median[outgoing_id, incoming_id] = float(np.median(lift_values))
+            state_std[outgoing_id, incoming_id] = float(np.std(state_values))
+            lift_std[outgoing_id, incoming_id] = float(np.std(lift_values))
+            sample_count[outgoing_id, incoming_id] = int(np.count_nonzero(mask))
+
+    selected_incoming_omegas = np.asarray(selected_incoming_omegas, dtype=float)
+    selected_outgoing_omegas = np.asarray(selected_outgoing_omegas, dtype=float)
+    if selected_incoming_omegas.size != selected_outgoing_omegas.size:
+        raise ValueError("Selected-choice omega arrays must have equal lengths")
+
+    selection_count = np.zeros(shape, dtype=int)
+    if selected_incoming_omegas.size:
+        selected_incoming_ids = bin_ids(selected_incoming_omegas)
+        selected_outgoing_ids = bin_ids(selected_outgoing_omegas)
+        np.add.at(
+            selection_count,
+            (selected_outgoing_ids, selected_incoming_ids),
+            1,
+        )
+
+    wrong_count = np.zeros(shape, dtype=int)
+    wrong_incoming_omegas = np.asarray(wrong_incoming_omegas, dtype=float)
+    wrong_outgoing_omegas = np.asarray(wrong_outgoing_omegas, dtype=float)
+    if wrong_incoming_omegas.size != wrong_outgoing_omegas.size:
+        raise ValueError("Wrong-choice omega arrays must have equal lengths")
+    if wrong_incoming_omegas.size:
+        wrong_incoming_ids = bin_ids(wrong_incoming_omegas)
+        wrong_outgoing_ids = bin_ids(wrong_outgoing_omegas)
+        np.add.at(wrong_count, (wrong_outgoing_ids, wrong_incoming_ids), 1)
+
+    # Failure rate is conditioned on SHRED actually selecting the transition.
+    # Unselected transitions remain blank instead of being shown as zero-rate.
+    visited_by_selector = selection_count > 0
+    failure_rate = np.full(shape, np.nan)
+    failure_rate[visited_by_selector] = (
+        wrong_count[visited_by_selector] / selection_count[visited_by_selector]
+    )
+    wrong_count_display = np.where(visited_by_selector, wrong_count, np.nan)
+    selection_count_display = np.where(
+        visited_by_selector,
+        selection_count,
+        np.nan,
+    )
+    return {
+        "edges": edges,
+        "centers": centers,
+        "state_median": state_median,
+        "lift_median": lift_median,
+        "state_std": state_std,
+        "lift_std": lift_std,
+        "failure_rate": failure_rate,
+        "wrong_count": wrong_count_display,
+        "selection_count": selection_count_display,
+        "sample_count": sample_count,
+    }
+
+
+def save_omega_error_heatmaps():
+    statistics = binned_omega_error_statistics(
+        incoming_omegas=heatmap_incoming_omegas,
+        outgoing_omegas=heatmap_outgoing_omegas,
+        state_errors=heatmap_state_errors,
+        lift_errors=heatmap_lift_errors,
+        wrong_incoming_omegas=heatmap_wrong_incoming_omegas,
+        wrong_outgoing_omegas=heatmap_wrong_outgoing_omegas,
+        selected_incoming_omegas=heatmap_selected_incoming_omegas,
+        selected_outgoing_omegas=heatmap_selected_outgoing_omegas,
+    )
+    edges = statistics["edges"]
+
+    panels = [
+        ("state_median", "Median pressure relative L2 error", "viridis", 0.0, None),
+        ("lift_median", "Median lift relative L2 error", "viridis", 0.0, None),
+        ("state_std", "Pressure relative-error standard deviation", "plasma", 0.0, None),
+        ("lift_std", "Lift relative-error standard deviation", "plasma", 0.0, None),
+        ("sample_count", "Candidate CFD sample count", "cividis", 0.0, None),
+        ("failure_rate", "SHRED choice failure rate", "inferno", 0.0, 1.0),
+        ("wrong_count", "Wrong SHRED choice count", "magma", 0.0, None),
+        ("selection_count", "SHRED selection count", "cividis", 0.0, None),
+    ]
+
+    fig, axes = plt.subplots(3, 3, figsize=(18, 16), constrained_layout=True)
+    axes = axes.ravel()
+    for axis, (key, title, colour_map, lower_limit, upper_limit) in zip(axes, panels):
+        values = statistics[key]
+        finite_values = np.asarray(values)[np.isfinite(values)]
+        plot_upper_limit = upper_limit
+        if plot_upper_limit is None and finite_values.size:
+            plot_upper_limit = float(np.max(finite_values))
+        if (
+            plot_upper_limit is not None
+            and lower_limit is not None
+            and plot_upper_limit <= lower_limit
+        ):
+            plot_upper_limit = lower_limit + np.finfo(float).eps
+        mesh = axis.pcolormesh(
+            edges,
+            edges,
+            np.ma.masked_invalid(values),
+            shading="auto",
+            cmap=colour_map,
+            vmin=lower_limit,
+            vmax=plot_upper_limit,
+        )
+        axis.plot(
+            [MPC_OMEGA_MIN, MPC_OMEGA_MAX],
+            [MPC_OMEGA_MIN, MPC_OMEGA_MAX],
+            color="white",
+            linestyle="--",
+            linewidth=0.8,
+            alpha=0.6,
+        )
+        axis.set_xlim(edges[0], edges[-1])
+        axis.set_ylim(edges[0], edges[-1])
+        axis.set_xlabel("Incoming omega")
+        axis.set_ylabel("Outgoing omega")
+        axis.set_title(title)
+        colour_bar = fig.colorbar(mesh, ax=axis)
+        if key in {"state_median", "lift_median", "state_std", "lift_std", "failure_rate"}:
+            colour_bar.ax.yaxis.set_major_formatter(PercentFormatter(xmax=1.0))
+
+        if key in {"failure_rate", "wrong_count", "selection_count", "sample_count"}:
+            centers = statistics["centers"]
+            for outgoing_id, outgoing_center in enumerate(centers):
+                for incoming_id, incoming_center in enumerate(centers):
+                    value = values[outgoing_id, incoming_id]
+                    if np.isfinite(value) and (key == "failure_rate" or value > 0):
+                        label = (
+                            f"{100.0 * value:.0f}%"
+                            if key == "failure_rate"
+                            else str(int(value))
+                        )
+                        axis.text(
+                            incoming_center,
+                            outgoing_center,
+                            label,
+                            ha="center",
+                            va="center",
+                            color="white",
+                            fontsize=8,
+                        )
+
+    for axis in axes[len(panels):]:
+        axis.axis("off")
+    fig.suptitle(
+        f"Aggregate SHRED predictor errors by omega transition "
+        f"({len(heatmap_state_errors)} eligible candidate simulations)",
+        fontsize=15,
+    )
+    fig.savefig(f"{STAT_OUTPUT_DIR}/predictor_error_heatmaps.png", dpi=200)
+    plt.close(fig)
+
+#### MPC CYCLE ####
+
+initial_online_case = InitialOnlineCaseSnapshot()
+simulation_id = 0
+simulation_cycle = 0
+simulation_target_values, simulation_lift_target = create_simulation_target(simulation_id)
+
+while simulation_id < STAT_NUM_SIMULATIONS:
+
+    # Hold the final target if a long statistical run exceeds the target table.
+    LIFT_T = (
+        simulation_lift_target[t]
+        if t < len(simulation_lift_target)
+        else simulation_lift_target[-1]
+    )
+    
+    os.chdir(cwd)
+
+    measurements = states_vec[-(shred_lags + meas_delta_t):, sensor_ids]  # (T, Ns)
+    meas_flat = measurements
+
+    print(f"pressure measurements = {measurements}")
+
+    lift_mean_vec = []
+    lift_std_vec = []
+    lift_applied_mean_vec = []
+    tracking_cost_vec = []
+    oscillation_cost_vec = []
+    move_cost_vec = []
+    total_cost_vec = []
+    pressure_future_candidates = []
+    parameter_future_candidates = []
+    pressure_cfd_candidates = []
+    lift_cfd_candidates = []
+    state_error_candidates = []
+    lift_error_candidates = []
+    cfd_lift_mean_vec = []
+    cfd_lift_std_vec = []
+    cfd_tracking_cost_vec = []
+    cfd_oscillation_cost_vec = []
+    cfd_move_cost_vec = []
+    cfd_total_cost_vec = []
+    candidate_records = []
+
+    #### LIFT PREDICTIVE EVALUATION ####
+
+    current_omega = float(parameters_cfd_sequence[-1])
+    possible_omegas = statistical_candidate_omegas(current_omega)
+
+    dir = t + CONTROL_HORIZON
+
+    os.makedirs(f"shred_images_p/{dir}", exist_ok=True)
+
+    for i in range(len(possible_omegas)):
+
+        omega = float(possible_omegas[i])
+
+        omega_apply = np.linspace(current_omega, omega, CONTROL_HORIZON + 1)[1:]
+        omega_hold = np.full(meas_delta_t - CONTROL_HORIZON, omega)
+        omega_future = np.concatenate([omega_apply, omega_hold])
+        omega_vec = np.concatenate([parameters_cfd_sequence[-shred_lags:], omega_future])
+
+        print(f"MEAS_DIM = {measurements.shape}, OMEGA_DIM = {omega_vec.shape}")
+        sensors = np.concatenate([meas_flat, omega_vec[:, None]], axis=-1)[None, ...]
+
+        print(f"SENSORS_DIM = {sensors.shape}")
+
+        latent = engine_pod.sensor_to_latent(sensors)
+        recon = engine_pod.decode(latent)
+
+        p_pred = np.asarray(recon["Pressure"])
+        par_pred = np.asarray(recon["Parameter"])
+        if p_pred.ndim > 2 and p_pred.shape[0] == 1:
+            p_pred = p_pred[0]
+        if par_pred.ndim > 2 and par_pred.shape[0] == 1:
+            par_pred = par_pred[0]
+
+        print(f"p_pred {p_pred.shape}")
+
+        p_future = p_pred[-meas_delta_t:, ...]
+        parameter_future = par_pred[-meas_delta_t:, ...]
+        pressure_future_candidates.append(p_future)
+        parameter_future_candidates.append(parameter_future)
+
+        lift_trajectory = lift_time_series_p(
+            p_future[:MPC_COST_HORIZON, ...],
+            points_vec=points_vec,
+        )
+        lift_mean = float(np.mean(lift_trajectory))
+        lift_std = float(np.std(lift_trajectory))
+        applied_lift_mean = float(np.mean(lift_trajectory[:CONTROL_HORIZON]))
+
+        absolute_tracking_error = abs(lift_mean - LIFT_T)
+        tracking_cost = max(absolute_tracking_error - MPC_LIFT_DEADBAND, 0.0)
+        oscillation_cost = MPC_OSCILLATION_WEIGHT * lift_std
+        normalized_move = abs(omega - current_omega) / MPC_OMEGA_SEARCH_RADIUS
+        move_cost = MPC_CONTROL_MOVE_WEIGHT * normalized_move
+        total_cost = tracking_cost + oscillation_cost + move_cost
+
+        lift_mean_vec.append(lift_mean)
+        lift_std_vec.append(lift_std)
+        lift_applied_mean_vec.append(applied_lift_mean)
+        tracking_cost_vec.append(tracking_cost)
+        oscillation_cost_vec.append(oscillation_cost)
+        move_cost_vec.append(move_cost)
+        total_cost_vec.append(total_cost)
+
+
+        stat_csv_dir = OpenFoam_launcher_stat(
+            omegas=parameters_cfd_sequence,
+            par_optimum=omega,
+            control_horizon=CONTROL_HORIZON,
+            simulation_id=simulation_id,
+            cycle_id=simulation_cycle,
+            candidate_id=i,
+            output_root=STAT_CFD_OUTPUT_ROOT,
+            omega_future=omega_future,
+        )
+        os.chdir(cwd)
+
+        p_cfd, states_vec_cfd = pressure_cfd_extractor(
+            count=meas_delta_t,
+            preprocess=True,
+            csv_dir=stat_csv_dir,
+        )
+        p_cfd_new = p_cfd
+
+        lift_cfd_trajectory = lift_time_series_p(
+            p_cfd_new[:MPC_COST_HORIZON, ...],
+            points_vec=points_vec,
+        )
+        lift_cfd_mean = float(np.mean(lift_cfd_trajectory))
+        lift_cfd_std = float(np.std(lift_cfd_trajectory))
+
+        cfd_absolute_tracking_error = abs(lift_cfd_mean - LIFT_T)
+        cfd_tracking_cost = max(
+            cfd_absolute_tracking_error - MPC_LIFT_DEADBAND,
+            0.0,
+        )
+        cfd_oscillation_cost = MPC_OSCILLATION_WEIGHT * lift_cfd_std
+        cfd_normalized_move = abs(omega - current_omega) / MPC_OMEGA_SEARCH_RADIUS
+        cfd_move_cost = MPC_CONTROL_MOVE_WEIGHT * cfd_normalized_move
+        cfd_total_cost = cfd_tracking_cost + cfd_oscillation_cost + cfd_move_cost
+
+        state_error = relative_l2_error(
+            p_future[:MPC_COST_HORIZON, ...],
+            p_cfd_new[:MPC_COST_HORIZON, ...],
+        )
+        lift_error = relative_l2_error(
+            lift_trajectory,
+            lift_cfd_trajectory,
+        )
+
+        pressure_prediction = p_future[:MPC_COST_HORIZON, ...]
+        pressure_reference = p_cfd_new[:MPC_COST_HORIZON, ...]
+        pressure_error_l2_norm = float(
+            np.linalg.norm((pressure_prediction - pressure_reference).ravel())
+        )
+        pressure_cfd_l2_norm = float(np.linalg.norm(pressure_reference.ravel()))
+        lift_error_l2_norm = float(
+            np.linalg.norm((lift_trajectory - lift_cfd_trajectory).ravel())
+        )
+        lift_cfd_l2_norm = float(np.linalg.norm(lift_cfd_trajectory.ravel()))
+
+        prediction_archive = ""
+        if STAT_SAVE_SHRED_FIELDS:
+            prediction_archive_path = Path(stat_csv_dir) / "shred_prediction.npz"
+            np.savez_compressed(
+                prediction_archive_path,
+                pressure_prediction=np.asarray(pressure_prediction, dtype=np.float32),
+                pressure_cfd_reference=np.asarray(pressure_reference, dtype=np.float32),
+                lift_prediction=np.asarray(lift_trajectory, dtype=np.float32),
+                lift_cfd_reference=np.asarray(lift_cfd_trajectory, dtype=np.float32),
+                parameter_prediction=np.asarray(
+                    parameter_future[:MPC_COST_HORIZON, ...],
+                    dtype=np.float32,
+                ),
+                omega_future=np.asarray(omega_future, dtype=np.float32),
+                sensor_input=np.asarray(sensors[0], dtype=np.float32),
+            )
+            prediction_archive = os.path.relpath(prediction_archive_path, cwd)
+
+        candidate_records.append(
+            {
+                "run_id": active_training_id,
+                "simulation_id": simulation_id,
+                "simulation_cycle": simulation_cycle,
+                "controller_timestep": t,
+                "eligible_for_statistics": int(t >= STATISTICS_START_TIMESTEP),
+                "lift_target": float(LIFT_T),
+                "candidate_id": i,
+                "incoming_omega": current_omega,
+                "outgoing_omega": omega,
+                "delta_omega": omega - current_omega,
+                "pressure_relative_l2_error": state_error,
+                "pressure_error_l2_norm": pressure_error_l2_norm,
+                "pressure_cfd_l2_norm": pressure_cfd_l2_norm,
+                "lift_relative_l2_error": lift_error,
+                "lift_error_l2_norm": lift_error_l2_norm,
+                "lift_cfd_l2_norm": lift_cfd_l2_norm,
+                "shred_lift_mean": lift_mean,
+                "cfd_lift_mean": lift_cfd_mean,
+                "shred_lift_std": lift_std,
+                "cfd_lift_std": lift_cfd_std,
+                "shred_tracking_cost": tracking_cost,
+                "cfd_tracking_cost": cfd_tracking_cost,
+                "shred_oscillation_cost": oscillation_cost,
+                "cfd_oscillation_cost": cfd_oscillation_cost,
+                "shred_move_cost": move_cost,
+                "cfd_move_cost": cfd_move_cost,
+                "shred_total_cost": total_cost,
+                "cfd_total_cost": cfd_total_cost,
+                "candidate_cfd_directory": os.path.relpath(stat_csv_dir, cwd),
+                "shred_prediction_archive": prediction_archive,
+            }
+        )
+
+        pressure_cfd_candidates.append(p_cfd_new)
+        lift_cfd_candidates.append(lift_cfd_trajectory)
+        state_error_candidates.append(state_error)
+        lift_error_candidates.append(lift_error)
+        cfd_lift_mean_vec.append(lift_cfd_mean)
+        cfd_lift_std_vec.append(lift_cfd_std)
+        cfd_tracking_cost_vec.append(cfd_tracking_cost)
+        cfd_oscillation_cost_vec.append(cfd_oscillation_cost)
+        cfd_move_cost_vec.append(cfd_move_cost)
+        cfd_total_cost_vec.append(cfd_total_cost)
+
+
+    lift_mean_vec = np.asarray(lift_mean_vec)
+    lift_std_vec = np.asarray(lift_std_vec)
+    lift_applied_mean_vec = np.asarray(lift_applied_mean_vec)
+    tracking_cost_vec = np.asarray(tracking_cost_vec)
+    oscillation_cost_vec = np.asarray(oscillation_cost_vec)
+    move_cost_vec = np.asarray(move_cost_vec)
+    total_cost_vec = np.asarray(total_cost_vec)
+    cfd_total_cost_vec = np.asarray(cfd_total_cost_vec)
+    state_error_candidates = np.asarray(state_error_candidates)
+    lift_error_candidates = np.asarray(lift_error_candidates)
+
+    
+
+    id_omega_choice = int(np.argmin(total_cost_vec))
+    id_omega_choice_cfd = int(np.argmin(cfd_total_cost_vec))
+    pressure_chosen_future = pressure_future_candidates[id_omega_choice]
+    parameter_chosen_future = parameter_future_candidates[id_omega_choice]
+
+    parameter_mistake = int(id_omega_choice != id_omega_choice_cfd)
+    shred_cost_ranks = np.empty(total_cost_vec.size, dtype=int)
+    shred_cost_ranks[np.argsort(total_cost_vec)] = np.arange(
+        1,
+        total_cost_vec.size + 1,
+    )
+    cfd_cost_ranks = np.empty(cfd_total_cost_vec.size, dtype=int)
+    cfd_cost_ranks[np.argsort(cfd_total_cost_vec)] = np.arange(
+        1,
+        cfd_total_cost_vec.size + 1,
+    )
+    sorted_cfd_costs = np.sort(cfd_total_cost_vec)
+    cfd_best_cost_margin = float(sorted_cfd_costs[1] - sorted_cfd_costs[0])
+    selected_cfd_regret = float(
+        cfd_total_cost_vec[id_omega_choice] - cfd_total_cost_vec[id_omega_choice_cfd]
+    )
+    cfd_cost_range = float(np.max(cfd_total_cost_vec) - np.min(cfd_total_cost_vec))
+    selected_cfd_normalized_regret = selected_cfd_regret / max(
+        cfd_cost_range,
+        STAT_RELATIVE_L2_EPSILON,
+    )
+    for candidate_id, record in enumerate(candidate_records):
+        record.update(
+            {
+                "shred_cost_rank": int(shred_cost_ranks[candidate_id]),
+                "cfd_cost_rank": int(cfd_cost_ranks[candidate_id]),
+                "shred_selected": int(candidate_id == id_omega_choice),
+                "cfd_selected": int(candidate_id == id_omega_choice_cfd),
+                "choice_mistake": parameter_mistake,
+                "cfd_best_cost_margin": cfd_best_cost_margin,
+                "selected_cfd_regret": selected_cfd_regret,
+                "selected_cfd_normalized_regret": selected_cfd_normalized_regret,
+            }
+        )
+    append_candidate_statistics(candidate_records)
+
+    if t >= STATISTICS_START_TIMESTEP:
+        cumulative_parameter_mistakes += parameter_mistake
+
+        # Pool every eligible candidate error from every completed cycle and
+        # every simulation. At the kth included cycle these contain
+        # STAT_OMEGA_GRID_SIZE*k samples. Warm-up cycles
+        # before STATISTICS_START_TIMESTEP never enter these arrays.
+        all_state_error_candidates.extend(state_error_candidates.tolist())
+        all_lift_error_candidates.extend(lift_error_candidates.tolist())
+        heatmap_incoming_omegas.extend(
+            [current_omega] * len(possible_omegas)
+        )
+        heatmap_outgoing_omegas.extend(possible_omegas.astype(float).tolist())
+        heatmap_state_errors.extend(state_error_candidates.tolist())
+        heatmap_lift_errors.extend(lift_error_candidates.tolist())
+        heatmap_selected_incoming_omegas.append(current_omega)
+        heatmap_selected_outgoing_omegas.append(
+            float(possible_omegas[id_omega_choice])
+        )
+        if parameter_mistake:
+            heatmap_wrong_incoming_omegas.append(current_omega)
+            heatmap_wrong_outgoing_omegas.append(
+                float(possible_omegas[id_omega_choice])
+            )
+        pooled_state_errors = np.asarray(all_state_error_candidates, dtype=float)
+        pooled_lift_errors = np.asarray(all_lift_error_candidates, dtype=float)
+
+        stat_cycle_vec.append(len(stat_cycle_vec) + 1)
+        stat_simulation_vec.append(simulation_id)
+        state_error_median_history.append(float(np.median(pooled_state_errors)))
+        state_error_q1_history.append(float(np.quantile(pooled_state_errors, 0.25)))
+        state_error_q3_history.append(float(np.quantile(pooled_state_errors, 0.75)))
+        lift_error_median_history.append(float(np.median(pooled_lift_errors)))
+        lift_error_q1_history.append(float(np.quantile(pooled_lift_errors, 0.25)))
+        lift_error_q3_history.append(float(np.quantile(pooled_lift_errors, 0.75)))
+        parameter_mistake_history.append(parameter_mistake)
+
+        print(
+            f"SHRED omega choice = {possible_omegas[id_omega_choice]:.6f}; "
+            f"CFD omega choice = {possible_omegas[id_omega_choice_cfd]:.6f}; "
+            f"counted wrong choices = {cumulative_parameter_mistakes}"
+        )
+        save_statistical_evolution_plot()
+        save_delta_omega_error_boxplots()
+        save_outgoing_omega_error_boxplots()
+        save_omega_error_heatmaps()
+    else:
+        print(
+            f"Warm-up timestep {t}: SHRED omega choice = "
+            f"{possible_omegas[id_omega_choice]:.6f}; CFD omega choice = "
+            f"{possible_omegas[id_omega_choice_cfd]:.6f}. Not counted."
+        )
+
+    # Compare like with like later: CFD advances only CONTROL_HORIZON samples.
+    lift_pred.append(lift_applied_mean_vec[id_omega_choice])
+
+    parameters_vec.append(float(possible_omegas[id_omega_choice]))
+
+
+    #### COMPARATIVE PLOT CREATION ####
+
+    parameters_cfd_sequence = OpenFoam_launcher_p(parameters_cfd_sequence, parameters_vec[-1], control_horizon=CONTROL_HORIZON)
+    os.chdir(cwd)
+
+    p_cfd, states_vec_cfd = pressure_cfd_extractor(count=CONTROL_HORIZON, preprocess=True)
+    p_cfd_new = p_cfd
+    parameter_cfd_new = parameters_cfd_sequence[-CONTROL_HORIZON:]
+    timestep_new = len(parameters_cfd_sequence) - CONTROL_HORIZON
+
+    states_vec = np.concatenate([states_vec, states_vec_cfd], axis=0)
+
+    lift_cfd = lift_generated_p(p_cfd_new, points_vec=points_vec) / CONTROL_HORIZON
+
+    lift_real.append(lift_cfd)
+
+    t = timestep_new + CONTROL_HORIZON
+    simulation_cycle += 1
+    completed_mpc_cycles += 1
+
+    if simulation_cycle >= STAT_N_CYCLES:
+        simulation_id += 1
+        if simulation_id < STAT_NUM_SIMULATIONS:
+            print(
+                f"Resetting OpenFOAM and Python histories for simulation "
+                f"{simulation_id + 1}/{STAT_NUM_SIMULATIONS}"
+            )
+            initial_online_case.restore()
+            states_vec = initial_states_vec.copy()
+            measurements = []
+            parameters_vec = [omega0]
+            parameters_cfd_sequence = [omega0] * shred_lags
+            lift_pred = []
+            lift_real = []
+            t = shred_lags
+            simulation_cycle = 0
+            simulation_target_values, simulation_lift_target = (
+                create_simulation_target(simulation_id)
+            )
+
+    if (
+        simulation_id < STAT_NUM_SIMULATIONS
+        and completed_mpc_cycles % STAT_RETRAIN_EVERY_CYCLES == 0
+    ):
+        retrain_shred_predictor()
+
+initial_online_case.close()

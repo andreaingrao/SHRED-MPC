@@ -1,0 +1,36 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import * 
+from shred_utils.functions import *
+import matplotlib.pyplot as plt
+
+states_vec = np.load(os.path.join(NUMPY_DIRECTORY, "states_vec.npy"))
+
+parameters_vec  = np.load(os.path.join(NUMPY_DIRECTORY, "parameters_vec.npy"))
+
+
+states = states_vec[:, -1, :, :]
+
+idx = np.argsort(parameters_vec)
+
+states_sorted = states[idx, ...]
+
+parameters_sorted = parameters_vec[idx]
+
+loss_vec = []
+
+for i in range(states_sorted.shape[0]):
+
+    state = states_sorted[i, ...]
+
+    loss = energy_dissipated(state)
+
+    loss_vec.append(loss)
+
+loss_vec = np.asarray(loss_vec)
+
+plt.plot(parameters_sorted, loss_vec, 'ro')
+plt.show()
+
+omega_min = np.argmin(loss_vec)
+
+print(parameters_sorted[omega_min])

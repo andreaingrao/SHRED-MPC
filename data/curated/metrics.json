@@ -1,0 +1,27 @@
+{
+  "rows": 250,
+  "eligible_rows": 210,
+  "cycles": 50,
+  "eligible_cycles": 42,
+  "models": 1,
+  "simulations": 1,
+  "pressure_relative_l2_quartiles": [
+    0.02383659831979862,
+    0.03059542941950673,
+    0.03663968858775152
+  ],
+  "lift_relative_l2_quartiles": [
+    0.1489389711389158,
+    0.1842603422648318,
+    0.2027131988355347
+  ],
+  "wrong_choice_cycles": 27,
+  "regret_quartiles": [
+    0.0,
+    0.019309740928145552,
+    0.05137382561202737
+  ],
+  "regret_max": 0.08571487636545094,
+  "variability_unit": "Correlated candidate evaluations along one closed-loop trajectory from one model; quartiles are descriptive, not confidence intervals.",
+  "relative_l2_definition": "norm(prediction-reference.ravel()) / max(norm(reference.ravel()),1e-12), across 50 steps and all points for pressure; across 50 steps for lift."
+}

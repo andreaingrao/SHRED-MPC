@@ -1,0 +1,114 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import * 
+from shred_utils.functions import *
+
+cwd = os.getcwd()
+
+
+engine_pod, states_vec, points_vec, manager_pod = DataLoad_Training("case_omega") 
+
+# estraggo le coordinate di tutti i punti points_vec = [n_points, 2]
+
+x = points_vec[..., 0]
+y = points_vec[..., 1]
+
+
+x_meas = x[sensor_ids]
+y_meas = y[sensor_ids]
+
+# estraggo le ultime misurazioni (per poter prevedere il primo stato successivo al mio attuale
+# timestep, visto che faccio previsioni meas_offset più avanti, devo avere un lag di dati indietro di un meas_offset)
+
+measurements = []
+parameters_vec   = []
+parameters_cfd_sequence = []
+
+
+parameters_vec.append(omega0)
+
+# mi costruisco anche un lag di omega0, a cui aggiungerò un meas_offset di omega nuovi, visto che i parametri sono
+# temporalmente allineati alle ricostruzioni e NON alle misurazioni
+#  
+for _ in range(shred_lags):
+    parameters_cfd_sequence.append(omega0)
+
+# estraggo le misurazioni dei sensori
+
+measurements = states_vec[-(2 * shred_lags) : , sensor_ids, ...]  # (T, Ns, 2)
+meas_x = measurements[..., 0]
+meas_y = measurements[..., 1]
+
+meas_flat = np.concatenate([meas_x, meas_y], axis=-1)
+
+# definisco il vettore dei parametri da provare 
+
+possible_omegas = [parameters_vec[-1] - PARAMETER_DELTA, parameters_vec[-1], parameters_vec[-1] + PARAMETER_DELTA]
+
+
+# ciclo sul vettore dei parametri per plottare i risultati al variare
+
+for omega_target in possible_omegas:
+
+
+    # serve renderlo float, unclear why, così funziona...
+
+    omega = float(omega_target)
+    
+    # il cambiamento del parametro non è immediato ma progressivo, perciò scelto il parametro finale lo interpolo linearmente (ma poi magari faremo spline)
+    # ottenendo un meas_delta_t di parametri, da allineare al secondo meas_delta_t delle misurazioni
+
+    omega_line = np.linspace(parameters_cfd_sequence[-1], omega, meas_delta_t)
+
+    # poi concateno il tutto alla serie di parametri che già ho: lo concateno DENTRO al ciclo, definendo una nuova variabile ALL'INTERNO del ciclo, così che quanto fatto nei cicli precedenti non mi crei disagio)
+
+    omega_vec = np.concatenate([parameters_cfd_sequence[-shred_lags:], omega_line]) # questo funziona solo se il meas delta t e gli shred lags hanno la stessa lunghezza
+    
+    # concateno sull'asse temporale, perchè shred ha in input per ogni timestep un unico array di tutti i sensori, prima gli statix, poi gli statiy, poi i parametri 
+    
+    sensors = np.concatenate([meas_flat, omega_vec[:, None]], axis=-1)[None, ...]
+
+    print(f"sensors = {sensors.shape}")
+    
+
+    # avvio la ricostruzione con shred
+
+    latent = engine_pod.sensor_to_latent(sensors)
+    recon = engine_pod.decode(latent)
+
+    # estraggo i dati dalla ricostruzione 
+
+    ux_pred = np.asarray(recon["States_x"])
+    uy_pred = np.asarray(recon["States_y"])
+    par_pred = np.asarray(recon["Parameter"])
+
+    # costruisco la cfd per valutare l'errore, ho bisogno di un array, perciò la faccio partire da -2
+
+    parameters_cfd = OpenFoam_launcher(parameters_cfd_sequence[-2:], omega)
+    mag_x_cfd, mag_y_cfd, states_vec_cfd = mag_cfd_extractor(parameters_cfd)
+
+
+    # limit plotting to the available window
+    os.chdir(cwd)  # return to project root so saves land under the expected folder
+    os.makedirs("shred_images", exist_ok=True)
+
+    for j in range(meas_delta_t):
+        os.makedirs(f"shred_images/{j}", exist_ok=True)
+
+        t_real = j 
+        t_pred = j + shred_lags
+
+        shred_comp_plot(
+            x=x,
+            y=y,
+            x_meas=x_meas,
+            y_meas=y_meas,
+            mag_x_true=mag_x_cfd[t_real + 2, ...],
+            mag_y_true=mag_y_cfd[t_real + 2, ...],
+            mag_x_pred=ux_pred[t_pred, ...],
+            mag_y_pred=uy_pred[t_pred, ...],
+            par_pred=par_pred[t_pred],
+            par_true=parameters_cfd[t_real + 2],
+            timestep= t_real,
+            vmax= 0.8,
+            type="save",
+        )

@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Original-to-export mapping — SHRED-MPC</title><link rel="stylesheet" href="../styles.css"></head><body><main class="doc"><div class="doc-nav"><a href="../index.html">← SHRED-MPC project</a><a href="file-mapping.md">Markdown source</a></div><h1>Original-to-export mapping</h1>
+<p>The original project is unchanged. This is a clean review export, not a 135 GB backup. Full datasets and experiment archives remain local; no hard links join editable source files to the original. The export has its own Git boundary and no remote.</p>
+<table><thead><tr><th>Original path/family</th><th>Export destination</th><th>Disposition</th></tr></thead><tbody>
+<tr><td><code>shred_utils/input_var.py</code></td><td><code>src/shred_mpc/config.py</code></td><td>Preserved defaults; random target generation now explicit, no import-time random draw</td></tr>
+<tr><td><code>shred_utils/functions_dataSet.py</code></td><td><code>src/shred_mpc/dataset.py</code></td><td>Maintained schedule generation; explicit package imports</td></tr>
+<tr><td><code>test2.py</code></td><td><code>src/shred_mpc/cli/control_table.py</code></td><td>Actual dataset CLI renamed; existing output refused</td></tr>
+<tr><td><code>shred_utils/pressure_preprocessing.py</code></td><td><code>src/shred_mpc/pressure.py</code></td><td>Historical normalization retained</td></tr>
+<tr><td><code>shred_utils/temporal_evaluation.py</code></td><td><code>src/shred_mpc/temporal.py</code></td><td>Isolated evaluation; imports point to maintained modules</td></tr>
+<tr><td><code>shred_mpc_launcher_temporal.py</code></td><td><code>src/shred_mpc/cli/temporal.py</code></td><td>Portable paths, explicit execution permission, train-only option, complete package source hashes</td></tr>
+<tr><td><code>shred_utils/export_temporal_pressure.py</code></td><td><code>src/shred_mpc/cli/export_pressure.py</code></td><td>ParaView imported only on explicit execution</td></tr>
+<tr><td>Pressure-ring functions in <code>shred_utils/functions.py</code></td><td><code>src/shred_mpc/observables.py</code></td><td>Same force mathematics; explicit coordinates; cache includes coordinates</td></tr>
+<tr><td>Boundary table functions in same file</td><td><code>src/shred_mpc/foam.py</code></td><td>Pure helpers extracted without importing legacy training/plotting code</td></tr>
+<tr><td>Existing <code>tests/</code></td><td><code>tests/</code></td><td>Same focused tests with maintained imports/CLI paths; added isolation/cache/evidence checks</td></tr>
+<tr><td><code>OpenFoam/{0,constant,system}</code></td><td><code>cfd/templates/training/</code></td><td>Complete inputs copied, including mesh and control table; no solver output copied</td></tr>
+<tr><td><code>MPC_OpenFoam/{0,constant,system}</code></td><td><code>cfd/templates/mpc/</code></td><td>Complete historical MPC template inputs copied</td></tr>
+<tr><td>Pressure MPC/statistical scripts and required helper/export files</td><td><code>archive/historical-pressure/**/*.txt</code></td><td>Frozen readable source, restored only by explicit isolated runner</td></tr>
+<tr><td>Older velocity scripts, <code>Other Scripts/</code>, alternative drivers</td><td><code>archive/legacy/**/*.txt</code></td><td>Historical lineage, not default runnable entry points; no exact Python duplicates found</td></tr>
+<tr><td>Local <code>utils/</code></td><td><code>archive/legacy/utils/</code> and <code>LICENSES/SHRED-ROM-MIT.txt</code></td><td>Unused by maintained workflow; upstream attribution retained</td></tr>
+<tr><td>July result CSVs and selected NPZ/metadata</td><td><code>data/curated/</code></td><td>Duplicate aggregate CSV consolidated to one identical file; source hashes in provenance JSON</td></tr>
+<tr><td>Original roadmap and temporal notes</td><td><code>docs/context/</code></td><td>Dated context, explicitly superseded by verified audit where stale</td></tr>
+<tr><td>Supplied slides/GIFs</td><td>Private inspection notes outside repository</td><td>Reviewed, not included in proposed public release; new figures generated from traceable arrays</td></tr>
+<tr><td><code>venv</code>, caches, bulk CFD, dataset, scratch files</td><td>Remain in original only</td><td>Excluded from publication; unrelated source snippets also retained in private source snapshot</td></tr>
+</tbody></table>
+<p><code>file-mapping.csv</code> adds exact retained source-to-destination entries and original SHA-256 values. The curated evidence manifest separately lists all input result paths and hashes. No similarly named script was assumed to be an interchangeable duplicate.</p>
+<h2>Engineering changes versus scientific changes</h2>
+<p>Engineering changes: package naming, entry points, import isolation, explicit data/output paths, run ownership, train-only mode, safe plans, offline analysis and documentation. A new dataset CLI replaces the destructive original shell driver for maintained use, using the already-isolated CFD helpers.</p>
+<p>One explicit numerical robustness fix keys pressure-ring geometry by coordinates, not only cell count. Tests verify the original convention and a second same-sized rotated grid. Historical fixed-grid values remain unchanged. The benchmark, force normalization, target scales, trained delay and historical result values were not scientifically corrected.</p>
+<p>Historical files retain old imports as documentation. The historical wrapper restores their original tree inside a new run and redirects data/cache paths; maintained commands never import frozen text files. No legacy shell driver is a default entry point.</p></main></body></html>

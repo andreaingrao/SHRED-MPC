@@ -1,0 +1,103 @@
+{
+  "sensor_ids": [
+    567,
+    719,
+    745,
+    837,
+    1050,
+    2178,
+    2279,
+    2890,
+    3144,
+    3214,
+    3351,
+    3455
+  ],
+  "coordinates": [
+    [
+      4.1326,
+      -5.056
+    ],
+    [
+      3.442,
+      -3.5867
+    ],
+    [
+      2.3497,
+      -3.5735
+    ],
+    [
+      2.089,
+      -2.6508
+    ],
+    [
+      -9.8699,
+      -6.2477
+    ],
+    [
+      1.2379,
+      5.6001
+    ],
+    [
+      5.8259,
+      6.0429
+    ],
+    [
+      4.9662,
+      -2.6827
+    ],
+    [
+      8.6247,
+      -0.28422
+    ],
+    [
+      3.6061,
+      0.52727
+    ],
+    [
+      7.8341,
+      3.3419
+    ],
+    [
+      3.5735,
+      2.3497
+    ]
+  ],
+  "inference": "Exact float32 equality of each sensor_input pressure column to preceding four selected candidate CFD first25 branches, unique minimum-MSE point columns.",
+  "checks": [
+    {
+      "cycle": 10,
+      "values_compared": 1200,
+      "maximum_rms": 0.0
+    },
+    {
+      "cycle": 20,
+      "values_compared": 1200,
+      "maximum_rms": 0.0
+    },
+    {
+      "cycle": 30,
+      "values_compared": 1200,
+      "maximum_rms": 0.0
+    },
+    {
+      "cycle": 39,
+      "values_compared": 1200,
+      "maximum_rms": 0.0
+    },
+    {
+      "cycle": 40,
+      "values_compared": 1200,
+      "maximum_rms": 0.0
+    }
+  ],
+  "current_code_sensor_ids": [
+    837,
+    2178,
+    2279,
+    3144,
+    3214,
+    3351,
+    3455
+  ]
+}

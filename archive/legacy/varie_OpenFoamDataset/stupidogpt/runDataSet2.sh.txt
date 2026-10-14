@@ -1,0 +1,228 @@
+#!/bin/bash
+
+set -euo pipefail
+
+############################
+# User settings
+############################
+
+NP=16              # for parallel runs (currently unused; see comments below)
+RUNS=150          # number of random-tail simulations
+
+DELTA_T=0.04       # must match system/controlDict
+# First N time steps are shared across ALL simulations:
+N_SHARED_STEPS=2500
+# So shared prefix ends at:
+SHARED_END_TIME=100      # N_SHARED_STEPS * DELTA_T = 250 * 0.04 = 10.0
+SHARED_WRITE_INTERVAL=2500 # write so we get an output exactly at SHARED_END_TIME
+
+# Final simulation time for each dataset member:
+FINAL_END_TIME=300
+
+############################
+# Paths
+############################
+
+BASE_CASE=$(pwd)              # assume we launch from .../OpenFoam
+DATASET_DIR="${BASE_CASE}"
+CSV_DIR="${DATASET_DIR}/CSV_files"
+PREFIX_CASE="${DATASET_DIR}/prefix_case"
+
+# Keep omega table timestep aligned with solver deltaT unless overridden.
+OMEGA_TIMESTEP_DELTA="${DELTA_T}"
+
+# Write interval tuned to get ~20 snapshots per omega change (min 1 timestep)
+# We derive it from meas_delta_t in shred_utils/input_var.py.
+WRITE_INTERVAL=$(python3 - <<'PY'
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+try:
+    from shred_utils.input_var import meas_delta_t
+    write_interval = max(1, int(meas_delta_t // 20))
+except Exception:
+    write_interval = 1
+print(write_interval)
+PY
+)
+
+mkdir -p "$CSV_DIR"
+
+echo "BASE_CASE        = $BASE_CASE"
+echo "PREFIX_CASE      = $PREFIX_CASE"
+echo "CSV_DIR          = $CSV_DIR"
+echo "RUNS             = $RUNS"
+echo "Shared end time  = $SHARED_END_TIME"
+echo "Final end time   = $FINAL_END_TIME"
+echo "Omega dt         = $OMEGA_TIMESTEP_DELTA"
+echo "Write interval   = $WRITE_INTERVAL (time steps)"
+echo
+
+############################
+# 1) Build the shared prefix once
+############################
+
+echo "=== [1/3] Building shared prefix case ==="
+
+rm -rf "$PREFIX_CASE"
+mkdir -p "$PREFIX_CASE"
+
+# This script should generate the omega_t_table.txt for the shared phase.
+# Convention: it writes to BASE_CASE/0/omega_t_table.txt
+python3 "${BASE_CASE}/write_input.py"
+
+# For the shared prefix, force omega=0 from t=0 up to SHARED_END_TIME.
+python3 - <<PY
+from pathlib import Path
+delta_t = ${DELTA_T}
+end_time = ${SHARED_END_TIME}
+target = Path("${BASE_CASE}") / "0" / "omega_t_table.txt"
+lines = []
+t = 0.0
+lines.append(f"({t:.6f}\\t0)\\n")
+while t + delta_t <= end_time + 1e-9:
+    t = round(t + delta_t, 6)
+    lines.append(f"({t:.6f}\\t0)\\n")
+target.write_text("".join(lines))
+PY
+
+# Copy template case into prefix_case
+cp -a "${BASE_CASE}/0"        "${PREFIX_CASE}/"
+cp -a "${BASE_CASE}/constant" "${PREFIX_CASE}/"
+cp -a "${BASE_CASE}/system"   "${PREFIX_CASE}/"
+
+# Patch controlDict in prefix_case to run ONLY the shared part
+CD_PREFIX="${PREFIX_CASE}/system/controlDict"
+
+# start from 0 and stop at SHARED_END_TIME
+sed -i 's/^startFrom.*/startFrom       startTime;/'         "$CD_PREFIX"
+sed -i 's/^startTime.*/startTime       0;/'                 "$CD_PREFIX"
+sed -i 's/^stopAt.*/stopAt          endTime;/'              "$CD_PREFIX"
+sed -i "s/^endTime.*/endTime         ${SHARED_END_TIME};/"  "$CD_PREFIX"
+
+# write every time step so that we hit SHARED_END_TIME exactly once
+sed -i 's/^writeControl.*/writeControl    timeStep;/'       "$CD_PREFIX"
+sed -i "s/^writeInterval.*/writeInterval ${SHARED_WRITE_INTERVAL};/" "$CD_PREFIX"
+
+cd "$PREFIX_CASE"
+
+# Build mesh & run prefix
+blockMesh > log.blockMesh 2>&1
+pimpleFoam > log.pimpleFoam 2>&1
+
+cd "$BASE_CASE"
+
+# Find the actual latest time written (should be SHARED_END_TIME)
+SHARED_TIME=$(ls "$PREFIX_CASE" | grep -E '^[0-9]+(\.[0-9]+)?$' | sort -g | tail -1)
+echo "Shared prefix finished at time t = ${SHARED_TIME}"
+echo "Will use this as restart time for all dataset cases."
+echo
+
+############################
+# 2) Loop over dataset cases
+############################
+
+echo "=== [2/3] Running resumed cases ==="
+
+for (( run=0; run<RUNS; run++ )); do
+
+    echo
+    echo "========== Case ${run}/${RUNS} =========="
+
+    CASE_DIR="${DATASET_DIR}/case_omega${run}"
+    CSV_CASE_DIR="${CSV_DIR}/case_omega${run}"
+
+    rm -rf "$CASE_DIR"
+    mkdir -p "$CASE_DIR" "$CSV_CASE_DIR"
+
+    # --- Copy from prefix_case as starting point ---
+
+    # Mesh + physical properties
+    cp -a "${PREFIX_CASE}/constant" "${CASE_DIR}/"
+
+    # System setup (solver, fvSchemes, etc.)
+    cp -a "${PREFIX_CASE}/system"   "${CASE_DIR}/"
+
+    # Restart fields at shared time
+    cp -a "${PREFIX_CASE}/${SHARED_TIME}" "${CASE_DIR}/"
+
+    # 0/ directory (for BC files & includes; not used as IC because we restart from latestTime)
+    cp -a "${PREFIX_CASE}/0" "${CASE_DIR}/"
+
+    # --- Patch controlDict for resumed run ---
+
+    CD_CASE="${CASE_DIR}/system/controlDict"
+
+    sed -i 's/^startFrom.*/startFrom       latestTime;/'    "$CD_CASE"
+    sed -i 's/^startTime.*/startTime       0;/'             "$CD_CASE"
+    sed -i 's/^stopAt.*/stopAt          endTime;/'          "$CD_CASE"
+    sed -i "s/^endTime.*/endTime         ${FINAL_END_TIME};/" "$CD_CASE"
+    sed -i 's/^writeControl.*/writeControl    timeStep;/'   "$CD_CASE"
+    sed -i "s/^writeInterval.*/writeInterval ${WRITE_INTERVAL};/" "$CD_CASE"
+
+    # --- Generate omega(t) for THIS case's random tail ---
+
+    # IMPORTANT:
+    # Modify test2.py so that:
+    #   - it takes SHARED_TIME as an argument
+    #   - it writes an omega_t_table.txt starting at t >= SHARED_TIME
+    # Here we redirect its output into the case's 0/ directory.
+    SHRED_TIMESTEP_DELTA="${OMEGA_TIMESTEP_DELTA}" python3 "${BASE_CASE}/../test2.py" "${SHARED_TIME}" > "${CASE_DIR}/0/omega_t_table.txt"
+
+    # Save omega schedule for bookkeeping
+    cp -a "${CASE_DIR}/0/omega_t_table.txt" "${CSV_CASE_DIR}/"
+
+    cd "$CASE_DIR"
+
+    echo "----------------------------------"
+    echo " Restarting from t = ${SHARED_TIME}"
+    echo "----------------------------------"
+
+    # If you want parallel:
+    #   decomposePar > log.decomposePar 2>&1
+    #   mpirun -np ${NP} pimpleFoam -parallel > log.pimpleFoam 2>&1
+    #   reconstructPar > log.reconstructPar 2>&1
+    # For now, serial:
+    pimpleFoam > log.pimpleFoam 2>&1
+
+    echo "----------------------------------"
+    echo " Decompressing field files (if any)..."
+    echo "----------------------------------"
+    for timestep in [0-9]*; do
+        if [ -d "$timestep" ]; then
+            gunzip -f "$timestep"/*.gz 2>/dev/null || true
+        fi
+    done
+
+    echo "----------------------------------"
+    echo " Creating .foam file..."
+    echo "----------------------------------"
+    touch "$(basename "$CASE_DIR").foam"
+
+    echo "----------------------------------"
+    echo " foamToVTK..."
+    echo "----------------------------------"
+    foamToVTK > log.foamToVTK 2>&1
+
+    echo "----------------------------------"
+    echo " Cleaning time directories for this case..."
+    echo "----------------------------------"
+    rm -rf [0-9]*
+
+    cd "$BASE_CASE"
+
+    echo " Finished case ${run}/${RUNS}"
+    echo "==========================================="
+
+done
+
+echo
+echo "=== [3/3] All ${RUNS} resumed simulations completed. ==="
+echo
+
+############################
+# 3) CSV export
+############################
+
+# Adjust DataSet_to_CSV.py so it reads from CSV_files/case_omega*/ and/or VTK.
+# If you need to prepend the shared prefix to each case, do it inside that script.
+pvpython "${BASE_CASE}/DataSet_to_CSV.py"

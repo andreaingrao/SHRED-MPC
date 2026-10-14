@@ -1,0 +1,10 @@
+{
+  "base_cfd_time": 370.0,
+  "candidate_id": 0,
+  "control_horizon": 25,
+  "current_omega": 0.05,
+  "cycle_id": 39,
+  "evaluation_horizon": 50,
+  "simulation_id": 0,
+  "terminal_omega": 0.04
+}

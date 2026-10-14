@@ -1,0 +1,92 @@
+from shred_utils.global_var import *
+from shred_utils.input_var import * 
+from shred_utils.functions import *
+import re
+
+case_id = 28
+
+engine_pod, state_0, points_vec, manager_pod = DataLoad_Training("case_omega") 
+
+ux_real, uy_real, states_vec = mag_cfd(case_id)
+
+dir = f"OpenFoam/CSV_files/case_omega{case_id}/omega_t_table.txt"
+
+omegas = []
+
+
+with open(dir) as f:
+
+    for line in f: 
+
+        nums = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", line)
+        if len(nums) >= 2:
+            omegas.append(float(nums[1]))  # use 0 if omega is the first number
+
+par_true = omegas
+
+
+print(f"SENSOR DIMENSIONS: {manager_pod.sensor_measurements[case_id, ...].shape}")
+latent = engine_pod.sensor_to_latent(manager_pod.sensor_measurements[case_id, ...])
+recon  = engine_pod.decode(latent)
+
+ux_pred = np.asarray(recon["States_x"])
+uy_pred = np.asarray(recon["States_y"])
+par_pred = np.asarray(recon["Parameter"])
+
+
+x = points_vec[..., 0]
+y = points_vec[..., 1]
+
+x_meas = x[sensor_ids]
+y_meas = y[sensor_ids]
+
+# align predictions with ground truth: training dropped the first `meas_offset` timesteps
+offset = meas_offset
+max_t = min(
+    ux_pred.shape[0],
+    ux_real.shape[0] - offset,
+    uy_real.shape[0] - offset,
+    len(par_true) - offset,
+)
+
+
+
+
+os.makedirs(f"shred_images2", exist_ok=True)
+
+print("\n[SAVING IMAGES]")
+for t in range(max(0, max_t)):
+    idx_true = t + offset
+    idx_pred = t
+    shred_comp_plot(
+        x=x,
+        y=y,
+        x_meas=x_meas,
+        y_meas=y_meas,
+        mag_x_true=ux_real[idx_true, ...],
+        mag_y_true=uy_real[idx_true, ...],
+        mag_x_pred=ux_pred[idx_pred, ...],
+        mag_y_pred=uy_pred[idx_pred, ...],
+        par_pred=par_pred[idx_true],
+        par_true=par_true[idx_true],
+        timestep=idx_true,
+        vmax=0.8,
+        type="save",
+    )
+
+    shred_cfd_plot(
+        x=x,
+        y=y,
+        x_meas=x_meas,
+        y_meas=y_meas,
+        mag_x_true=ux_real[idx_true, ...],
+        mag_y_true=uy_real[idx_true, ...],
+        mag_x_pred=ux_pred[idx_pred, ...],
+        mag_y_pred=uy_pred[idx_pred, ...],
+        par_pred=par_pred[idx_true],
+        par_true=par_true[idx_true],
+        timestep=idx_true,
+        vmax=0.8,
+        type="save",
+    )
+    

@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Local preview and GitHub Pages — SHRED-MPC</title><link rel="stylesheet" href="../styles.css"></head><body><main class="doc"><div class="doc-nav"><a href="../index.html">← SHRED-MPC project</a><a href="deployment.md">Markdown source</a></div><h1>Local preview and GitHub Pages</h1>
+<p>The website is static HTML/CSS plus local images/video and copied Markdown documentation. It needs no Node build, backend, external fonts, analytics or hosted service. The source target is <a href="https://github.com/andreaingrao/SHRED-MPC">andreaingrao/SHRED-MPC</a>, kept private by Andrea’s explicit instruction. Pages activation and deployment remain disabled; only a private source upload is authorized.</p>
+<pre><code>python scripts/build_site.py
+python scripts/check_site.py
+python -m http.server 8000 --bind 127.0.0.1 --directory website</code></pre>
+<p>Open http://127.0.0.1:8000/. For a project-path check, serve the repository parent and open <code>/REPOSITORY_DIRECTORY/website/</code>; all site asset/document links are relative and work below a repository prefix.</p>
+<h2>After approval only</h2>
+<ol>
+<li>Review <code>docs/release.md</code> and <code>PUBLIC_FILES.txt</code>. Confirm rights/license and whether the repository and website should be public; a private repository does not by itself guarantee a private Pages site.</li>
+<li>Use the private <code>andreaingrao/SHRED-MPC</code> repository. Confirm the intended repository/site visibility before changing either.</li>
+<li>Review/commit/push only this isolated repository. Never stage from the original workspace or home-directory repository.</li>
+<li>In GitHub Settings → Pages, select <strong>GitHub Actions</strong> as the source.</li>
+<li>Manually run the prepared <strong>Deploy project website</strong> workflow. It has <code>workflow_dispatch</code> only, so a push does not automatically publish.</li>
+</ol>
+<p>The workflow builds/copies documentation, checks local links, uploads <code>website/</code>, and uses GitHub’s Pages deployment actions with the required permissions and environment. Relative URLs support <code>https://OWNER.github.io/REPOSITORY/</code> without hard-coded domain names. The source link identifies the private repository and requires access.</p>
+<p>Official references: <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages">GitHub custom Pages workflows</a>, <a href="https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits">Pages limits</a>. Hosting itself was not exercised; local files, HTTP paths and browser rendering are the review target.</p></main></body></html>

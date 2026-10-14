@@ -1,0 +1,90 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_CASE="$SCRIPT_DIR"
+cd "$BASE_CASE"
+
+NP=16                 
+RUNS=$(python3 import_input.py)
+
+python3 import_input.py
+
+
+DATASET_DIR="${BASE_CASE}"
+CSV_DIR="${DATASET_DIR}/CSV_files"
+
+mkdir -p "$DATASET_DIR" "$CSV_DIR"
+
+OMEGA_0=0
+
+OMEGA=$OMEGA_0
+
+for (( run=0; run<RUNS; run++ )); do
+    	
+    	echo "========== Sweep ${run}/${RUNS} =========="
+
+	CASE_DIR="${DATASET_DIR}/case_omega${run}"
+	CSV_CASE_DIR="${CSV_DIR}/case_omega${run}"
+
+	rm -rf "$CASE_DIR" "$CSV_CASE_DIR"
+	mkdir -p "$CASE_DIR" "$CSV_CASE_DIR"
+
+	# Regenerate the omega table for this dataset profile.
+	python3 "$BASE_CASE/../test2.py" "$run"
+
+	cp -a "${BASE_CASE}/constant" "${CASE_DIR}/"
+	cp -a "${BASE_CASE}/system"   "${CASE_DIR}/"
+	cp -a "${BASE_CASE}/0"        "${CASE_DIR}/"
+ 
+	cp -a "${BASE_CASE}/0/omega_t_table.txt" "${CSV_CASE_DIR}/" 
+
+	cd "$CASE_DIR"
+
+	echo "----------------------------------"
+	echo " Case ${run}/${RUNS}"
+	echo " Sweep ${run}"
+	echo " omega0 = ${OMEGA_0}"
+	echo "----------------------------------"
+
+	blockMesh > log.blockMesh 2>&1
+	pimpleFoam > log.pimpleFoam 2>&1
+
+	echo "----------------------------------"
+	echo " Decompressing field files..."
+	echo "----------------------------------"
+	for timestep in [0-9]*; do
+	    if [ -d "$timestep" ]; then
+		gunzip -f "$timestep"/*.gz 2>/dev/null || true
+	    fi
+	done
+
+	echo "----------------------------------"
+	echo " Creating .foam file..."
+	echo "----------------------------------"
+	touch "$(basename "$CASE_DIR").foam"
+
+	echo "----------------------------------"
+	echo " foamToVTK..."
+	echo "----------------------------------"
+	foamToVTK > log.foamToVTK 2>&1
+
+	echo "----------------------------------"
+	echo " Removing time directories..."
+	echo "----------------------------------"
+	rm -rf [0-9]*
+
+	echo "----------------------------------"
+	echo " Finished case ${run}/${RUNS}"
+	echo "----------------------------------"
+
+	cd "$BASE_CASE"
+
+done
+
+echo "All ${run} simulations completed across ${RUNS} sweeps."
+
+cd "$BASE_CASE/.."
+
+pvpython DataSet_to_CSV.py

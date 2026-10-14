@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+import argparse
+import re
+from pathlib import Path
+
+from shred_utils.pressure_preprocessing import (
+    PRESSURE_COLUMN,
+    PRESSURE_DYNAMIC_Q,
+    RAW_PRESSURE_COLUMN,
+    X_COLUMN,
+    preprocess_pressure_csv,
+)
+
+
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_CSV_ROOT = BASE_DIR / "OpenFoam" / "CSV_files"
+
+
+def numeric_suffix(path):
+    stem = Path(path).stem
+    try:
+        return int(stem.rsplit("_", 1)[1])
+    except (IndexError, ValueError):
+        return 0
+
+
+def case_sort_key(case_dir, case_key):
+    match = re.search(rf"{re.escape(case_key)}(\d+)$", case_dir.name)
+    if match:
+        return int(match.group(1))
+    return case_dir.name
+
+
+def collect_case_dirs(root, case_key, pattern, limit=None):
+    if list(root.glob(pattern)):
+        return [root]
+
+    case_dirs = [
+        path for path in root.iterdir()
+        if path.is_dir() and path.name.startswith(case_key)
+    ]
+    case_dirs.sort(key=lambda path: case_sort_key(path, case_key))
+
+    if limit is not None:
+        case_dirs = case_dirs[:limit]
+
+    return case_dirs
+
+
+def process_case_dir(case_dir, args):
+    csv_files = sorted(case_dir.glob(args.pattern), key=numeric_suffix)
+
+    if not csv_files:
+        print(f"Skipping {case_dir}: no {args.pattern} files found.")
+        return 0
+
+    if args.dry_run:
+        print(f"{case_dir}: would process {len(csv_files)} files")
+        return len(csv_files)
+
+    for csv_file in csv_files:
+        preprocess_pressure_csv(
+            csv_path=csv_file,
+            pressure_column=args.pressure_column,
+            x_column=args.x_column,
+            output_column=args.output_column,
+            q_inf=args.q_inf,
+            raw_column=args.raw_column,
+            preserve_raw=not args.no_preserve_raw,
+        )
+
+    print(f"{case_dir}: processed {len(csv_files)} files")
+    return len(csv_files)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description=(
+            "Convert pressure CSV files to normalized pressure difference: "
+            "(p_raw - p_inf) / q_inf. By default the raw pressure is preserved "
+            "in p_raw and the p column is overwritten for SHRED training."
+        )
+    )
+    parser.add_argument("--root", type=Path, default=DEFAULT_CSV_ROOT, help="CSV root or a single case CSV directory.")
+    parser.add_argument("--case-key", default="case_omega", help="Prefix used to discover case folders under --root.")
+    parser.add_argument("--pattern", default="datacsv_*.csv", help="CSV filename pattern inside each case directory.")
+    parser.add_argument("--q-inf", type=float, default=PRESSURE_DYNAMIC_Q, help="Dynamic pressure used for normalization.")
+    parser.add_argument("--pressure-column", default=PRESSURE_COLUMN, help="Raw pressure column name when p_raw is absent.")
+    parser.add_argument("--raw-column", default=RAW_PRESSURE_COLUMN, help="Column where raw pressure is preserved/read.")
+    parser.add_argument("--x-column", default=X_COLUMN, help="X coordinate column used to find the left freestream edge.")
+    parser.add_argument("--output-column", default=PRESSURE_COLUMN, help="Column written with normalized pressure.")
+    parser.add_argument("--limit", type=int, default=None, help="Optional number of case directories to process.")
+    parser.add_argument("--dry-run", action="store_true", help="List what would be processed without modifying files.")
+    parser.add_argument(
+        "--no-preserve-raw",
+        action="store_true",
+        help="Do not create/use p_raw; useful only when you intentionally want a one-way overwrite.",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    root = args.root.resolve()
+
+    if not root.exists():
+        raise FileNotFoundError(f"CSV root does not exist: {root}")
+    if not root.is_dir():
+        raise NotADirectoryError(f"CSV root is not a directory: {root}")
+
+    print("Pressure CSV post-processing")
+    print(f"root: {root}")
+    print(f"q_inf: {args.q_inf}")
+    print(f"raw column: {args.raw_column}")
+    print(f"output column: {args.output_column}")
+    if args.dry_run:
+        print("dry run: no files will be modified")
+
+    case_dirs = collect_case_dirs(
+        root=root,
+        case_key=args.case_key,
+        pattern=args.pattern,
+        limit=args.limit,
+    )
+
+    if not case_dirs:
+        raise FileNotFoundError(f"No {args.case_key} directories or {args.pattern} files found in {root}")
+
+    total = 0
+    for case_dir in case_dirs:
+        total += process_case_dir(case_dir, args)
+
+    action = "would process" if args.dry_run else "processed"
+    print(f"Done: {action} {total} CSV files.")
+
+
+if __name__ == "__main__":
+    main()
