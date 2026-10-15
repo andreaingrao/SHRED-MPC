@@ -41,8 +41,8 @@
   </figure>
 
     <figure class="architecture">
-      <a href="assets/prediction-window.png" aria-label="Open the original prediction-window diagram at full size"><img src="assets/prediction-window.png" width="1380" height="510" loading="lazy" alt="Original slide blocks show a sensing history x, shifted predicted outputs y, and cylinder rotation omega added as a control input."></a>
-      <figcaption>The original prediction-window diagram from slide 5 of Andrea Ingrao’s project presentation. Here x denotes observations, y the predicted output, and ω the rotation input.</figcaption>
+      <a href="assets/sensing-window.svg" aria-label="Open the parameter-conditioned sensing-window diagram at full size"><img src="assets/sensing-window.svg" width="1800" height="1000" loading="lazy" alt="One sensing-window example: L timesteps of sparse pressure measurements and an added rotation channel feed one trained SHRED model. It predicts future pressure fields at all mesh locations; varying the candidate parameter produces alternative fields on the same mesh."></a>
+      <figcaption>A single parameter-conditioned prediction, based on slides 9 and 17 of Andrea Ingrao’s presentation. The whole measurement lag enters the model, with rotation added as a feature channel. A constant candidate value is shown for clarity; MPC uses ramp-and-hold profiles and the configured time offset. <a href="assets/sensing-window.svg">Editable SVG</a> · <a href="assets/sensing-window.pdf">PDF</a>.</figcaption>
     </figure>
     <p>For each candidate rotation, SHRED predicts pressure and the code computes a pressure-derived lift observable. The controller balances lift tracking, oscillation and changes in rotation, applies the first part of the selected command in OpenFOAM, and updates the history before making the next decision.</p>
     <p class="aside">The code retains the project’s pressure-lift convention and initial CFD settings. The observable is not total aerodynamic lift.</p>

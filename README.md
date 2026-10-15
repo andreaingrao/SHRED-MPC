@@ -26,9 +26,9 @@ For each MPC update, the measured pressure and rotation histories are paired wit
 
 The pressure model pairs an earlier sensor window with the later pressure field and the corresponding rotation input. At each control step, the same sensor history is evaluated with several candidate ramp-and-hold rotation commands. The controller selects a command using lift tracking, oscillation and control-move costs, advances CFD for the control horizon, and updates the history.
 
-![Original slide diagram showing the sensing window, shifted prediction window and rotation input omega.](website/assets/prediction-window.png)
+![One sensing-window example: L timesteps of sparse pressure measurements plus a candidate rotation channel enter the same trained SHRED model, which predicts future pressure fields over all spatial locations. Changing the candidate parameter gives an alternative predicted field on the same mesh.](website/assets/sensing-window.svg)
 
-*Prediction-window diagram from slide 5 of Andrea Ingrao’s project presentation. The original code’s pressure-derived lift convention is retained; it is not a total-force calculation.*
+*One parameter-conditioned prediction example, based on slides 9 and 17 of Andrea Ingrao’s `SHRED - MPC.pptx`. Each input column contains the sparse measurements at one timestep; the candidate rotation is added as a feature channel. The same trained model decodes future pressure fields for each candidate. A constant parameter is shown for clarity; the MPC implementation uses ramp-and-hold rotation profiles and its configured observation–prediction time offset. [Editable SVG](website/assets/sensing-window.svg) · [PDF](website/assets/sensing-window.pdf).*
 
 SHRED-ROM pairs 
 
