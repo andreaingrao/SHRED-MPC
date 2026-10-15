@@ -7,7 +7,13 @@
 
 This project studies model predictive control (MPC) for lift tracking in flow past a rotating cylinder. It uses a control-conditioned Shallow Recurrent Decoder (SHRED) as a learned surrogate for the CFD system. SHRED maps a time history of sparse pressure measurements to a high-dimensional pressure field; its recurrent encoder represents temporal information, while a shallow decoder maps that representation to the field [1, 2].
 
+
+![SHRED-ROM overview: sensor histories, recurrent encoder, shallow decoder and POD reconstruction.](website/assets/shred-rom.png)
+
+*Upstream SHRED-ROM architecture, reproduced from [Matteo Tomasetto’s repository](https://github.com/MatteoTomasetto/shred-rom) under its [MIT license](website/assets/LICENSE-SHRED-ROM.txt). This illustrates the reconstruction method on which the project builds; the control-conditioned prediction window is shown below.*
+
 For each MPC update, the measured pressure and rotation histories are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC [3]. Related work has also combined learned recurrent surrogates, sparse sensing, and MPC for flow control [4].
+
 
 In this repository, model training occurs before the control run. The saved model is loaded as a fixed surrogate during MPC; the controller does not perform online learning. The lift quantity is derived from predicted pressure using the project’s existing convention, so it should not be interpreted as total aerodynamic lift. The diagram below summarizes the implemented loop.
 
@@ -15,15 +21,11 @@ In this repository, model training occurs before the control run. The saved mode
 SHRED-MPC thus leverages SHRED-ROM's full field reconstructing capabilities from sparse sensors to address the real world limitations of traditional MPC. 
 
 SHallow REcurrent Decoder-based Reduced Order Model (SHRED-ROM) is an ultra-hyperreduced order modeling framework aiming at reconstructing high-dimensional data from limited sensor measurements in multiple scenarios. 
-Using this as the surrogate model of the system to be controlled, shifting its reconstruction forward in time as a prediction, and parametrizing it on the control value, means being capable of: 
-- having a full picture of the state in the prediction window, for every control parameter, starting from a limited and sparse number of measurements; this is coherent with real world applications, where a full measurement of the entire system is never provided, and was the limit of previous similar structures as DeepMPC; 
-- reconstructing the whole space and evaluating on it the loss function provides great flexibility, as no new NN has to be retrained when changing objective and this can be even changed online;
-- using such a Shallow RNN and then coupling it with the ROM decoder dramatically improves the performance of the system, reducing the computational powered required to run it, therefore improving its online applicability. 
+Using this as the surrogate model means being capable of: 
+- having a full picture of the state in the prediction window, for every control parameter, starting from a limited and sparse number of measurements; this is coherent with real world applications, where a full measurement of the entire system is never provided;
+- reconstructing the whole space and evaluating on it the loss function provides great flexibility, as no retraining is needed when switching objective and this can even happen online;
+- using such a Shallow RNN and then coupling it with the ROM decoder drastically improves the performance of the system, reducing the computational powered required to run it and making it available for faster systems. 
 
-
-![SHRED-ROM overview: sensor histories, recurrent encoder, shallow decoder and POD reconstruction.](website/assets/shred-rom.png)
-
-*Upstream SHRED-ROM architecture, reproduced from [Matteo Tomasetto’s repository](https://github.com/MatteoTomasetto/shred-rom) under its [MIT license](website/assets/LICENSE-SHRED-ROM.txt). This illustrates the reconstruction method on which the project builds; the control-conditioned prediction window is shown below.*
 
 ## Method
 
