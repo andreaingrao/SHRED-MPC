@@ -17,7 +17,7 @@ Using this as the surrogate model means being capable of:
 ## Method
 
 
-For each MPC update, the measured pressure and rotation histories are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC [3]. Related work has also combined learned recurrent surrogates, sparse sensing, and MPC for flow control [4].
+For each MPC update, the history of  are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC [3]. Related work has also combined learned recurrent surrogates, sparse sensing, and MPC for flow control [4].
 
 ![MPC structure with SHRED acting as a surrogate pressure model. Sparse pressure and rotation history enter SHRED; candidate rotation profiles are evaluated from predicted pressure-derived lift; the optimizer applies one selected segment to CFD, which returns new measurements.](website/assets/mpc-surrogate-structure.svg)
 
@@ -30,7 +30,7 @@ The pressure model pairs an earlier sensor window with the later pressure field 
 
 *One parameter-conditioned prediction example, based on slides 9 and 17 of Andrea Ingrao’s `SHRED - MPC.pptx`. Each input column contains the sparse measurements at one timestep; the candidate rotation is added as a feature channel. The same trained model decodes future pressure fields for each candidate. A constant parameter is shown for clarity; the MPC implementation uses ramp-and-hold rotation profiles and its configured observation–prediction time offset. [Editable SVG](website/assets/sensing-window.svg) · [PDF](website/assets/sensing-window.pdf).*
 
-SHRED-ROM pairs 
+SHRED-ROM receives in input a lag of sensor measurements and decodes the entire state space of the associated timestep. 
 
 ![SHRED-ROM overview: sensor histories, recurrent encoder, shallow decoder and POD reconstruction.](website/assets/shred-rom.png)
 

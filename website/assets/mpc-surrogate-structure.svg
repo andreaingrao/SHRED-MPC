@@ -106,7 +106,7 @@ SOFTWARE.
   <!-- Candidate iteration loop -->
   <path d="M1379 408 V490 H595 V435" class="candidate"/>
   <rect x="855" y="471" width="340" height="38" rx="19" fill="#fff6ed" stroke="#d9a67c" stroke-width="1.5"/>
-  <text x="1025" y="496" text-anchor="middle" font-size="15" font-weight="600" fill="#8f4b1d">Candidate rotational velocity</text>
+  <text x="1025" y="496" text-anchor="middle" font-size="15" font-weight="600" fill="#8f4b1d">Candidate control parameter</text>
 
   <!-- Selected command to physical CFD -->
   <path d="M1520 342.5 H1570 V690 H1117" class="applied"/>

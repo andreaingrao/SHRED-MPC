@@ -30,8 +30,6 @@ circle_colour = "red"                               # sensor representation colo
 circle_size = 25                                    # sensor representation size
 
 
-
-
 # MPC 
 
 N_cycles = 20

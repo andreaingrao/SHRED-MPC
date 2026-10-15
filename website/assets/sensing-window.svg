@@ -46,7 +46,6 @@
 <text x="543" y="386" class="math" text-anchor="middle">x₂</text>
 <text x="543" y="420" class="math" text-anchor="middle">⋮</text>
 <text x="543" y="455" class="math" text-anchor="middle">xₘ</text>
-<text x="88" y="511" class="body" >Add the candidate rotation as a feature</text>
 <rect x="104" y="533" width="98" height="57" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
 <text x="153" y="571" class="math" text-anchor="middle" style="fill:#99521e">ωⱼ</text>
 <rect x="234" y="533" width="98" height="57" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
@@ -62,7 +61,7 @@
 <text x="690" y="413" class="muted" text-anchor="middle">[Xₜ | Ωⱼ]</text>
 <text x="755" y="217" class="step">2 / SHRED SURROGATE</text>
 <rect x="750" y="300" width="320" height="290" rx="20" fill="#185e79"/>
-<text x="910" y="345" class="heading white" text-anchor="middle">One trained model</text>
+<text x="910" y="345" class="heading white" text-anchor="middle">Trained model</text>
 <rect x="778" y="371" width="264" height="65" rx="10" fill="#fff"/>
 <text x="910" y="398" class="body" text-anchor="middle">Recurrent encoder</text>
 <text x="910" y="422" class="muted" text-anchor="middle">LSTM · temporal history</text>
@@ -100,13 +99,4 @@
 <text x="1634" y="547" class="math" text-anchor="middle">p̂ₙ</text>
 <text x="1198" y="633" class="body" >n spatial locations · H future timesteps</text>
 <text x="1198" y="670" class="body" >A predicted field on the same mesh</text>
-<line x1="60" y1="750" x2="1740" y2="750" stroke="#d6e1e5" stroke-width="2"/>
-<text x="60" y="791" class="step">VARY THE PARAMETER · KEEP THE SENSING WINDOW AND MODEL FIXED</text>
-<text x="60" y="835" class="body">For each candidate value, repeat the same prediction:</text>
-<rect x="720" y="800" width="460" height="71" rx="12" fill="#fff2e6" stroke="#e4c4a7"/>
-<text x="950" y="845" class="math" text-anchor="middle" style="fill:#99521e">ω₁ → p̂⁽¹⁾</text>
-<rect x="1210" y="800" width="530" height="71" rx="12" fill="#eaf3ee" stroke="#b5cbbd"/>
-<text x="1475" y="845" class="math" text-anchor="middle" style="fill:#33694f">ω₂ → p̂⁽²⁾</text>
-<text x="60" y="913" class="subtitle">Different rotation values give different predicted pressure fields on the same spatial domain.</text>
-<text x="60" y="965" class="muted">Conceptual constant-parameter example. MPC uses ramp-and-hold rotation profiles and the configured observation–prediction time offset.</text>
 </svg>
