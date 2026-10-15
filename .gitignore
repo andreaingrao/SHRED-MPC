@@ -1,11 +1,9 @@
-__pycache__/
-*.py[cod]
 .venv/
 venv/
-*.egg-info/
-build/
-dist/
+__pycache__/
+*.pyc
+OpenFoam/case_omega*/
+OpenFoam/CSV_files/
+models/
 runs/
-data/external/
-.pytest_cache/
-.DS_Store
+shred_images_p/

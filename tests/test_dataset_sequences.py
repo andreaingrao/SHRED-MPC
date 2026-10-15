@@ -6,8 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from shred_mpc import config
-from shred_mpc.dataset import dataset_profile_for_run, random_dataSet_generator
+from shred_utils import input_var as config
+from shred_utils.functions_dataSet import dataset_profile_for_run, random_dataSet_generator
 
 
 class DatasetSequenceTests(unittest.TestCase):
@@ -20,11 +20,13 @@ class DatasetSequenceTests(unittest.TestCase):
         }
         profiles = [dataset_profile_for_run(i)[1] for i in range(config.DATASET_CASES)]
         self.assertEqual(collections.Counter(profiles), expected)
-        # Each sequential partition should retain all four profile families.
-        for start, end in ((0, 400), (400, 450), (450, 500)):
-            self.assertEqual(set(profiles[start:end]), set(expected))
+        # Preserve the original full-campaign coverage check without requiring
+        # a ten-case quickstart pilot to contain all families in a one-case split.
+        if config.DATASET_CASES == 500 and all(expected.values()):
+            for start, end in ((0, 400), (400, 450), (450, 500)):
+                self.assertEqual(set(profiles[start:end]), set(expected))
 
-    def test_all_500_sequences_have_valid_lengths_bounds_and_rates(self):
+    def test_configured_sequences_have_valid_lengths_bounds_and_rates(self):
         rate = config.MPC_OMEGA_SEARCH_RADIUS / config.CONTROL_HORIZON
         for run_index in range(config.DATASET_CASES):
             duration, profile, _ = dataset_profile_for_run(run_index)
@@ -82,7 +84,7 @@ class DatasetSequenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "omega.txt"
             result = subprocess.run(
-                [sys.executable, "-m", "shred_mpc.cli.control_table", "3", "--seed", "42",
+                [sys.executable, str(root / "test2.py"), "3", "--seed", "42",
                  "--output", str(output)],
                 cwd=directory, check=True, capture_output=True, text=True,
             )

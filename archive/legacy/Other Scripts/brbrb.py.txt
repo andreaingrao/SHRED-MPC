@@ -1,5 +1,0 @@
-from shred_utils.functions import*
-
-states_vec, points_vec, parameters_vec = data_load("case_omega")
-
-print(f"states_vec = {states_vec.shape} \n parameters_vec = {parameters_vec.shape}")

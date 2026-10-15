@@ -1,121 +1,117 @@
-# SHRED-MPC: control-conditioned pressure prediction for cylinder rotation
+# SHRED-MPC
 
-**Can sparse pressure histories predict the consequences of a rotation command well enough to select a useful control action?** This research prototype combines a control-conditioned Shallow Recurrent Decoder (SHRED) with finite-candidate model predictive control (MPC). OpenFOAM supplies a rotating-cylinder numerical benchmark; the predictor estimates normalized pressure fields, from which a pressure-derived lift observable is computed.
+**Pressure prediction and lift-following control of a rotating cylinder.**
 
-![CFD reference, SHRED prediction and absolute pressure error](website/assets/figures/fields.png)
-*Real archived fields: July 2026 run, model `training_000`, simulation 0, cycle 39, candidate 0, position 25/50. CFD and prediction share a color scale. The candidate was selected by a documented median-error rule, not visual preference. [Figure provenance](docs/results.md).* 
+This project uses a control-conditioned Shallow Recurrent Decoder (SHRED) to predict pressure fields from sparse pressure observations and a candidate rotation history. Model predictive control evaluates these histories using a pressure-derived lift observable, applies the first part of the chosen rotation command in OpenFOAM, and repeats with updated observations.
 
-Developed by **Andrea Ingrao**, with theoretical guidance from **Matteo Tomasetto** and **Prof. Andrea Manzoni**, in the project context of **MOX, Politecnico di Milano**. Source repository: [andreaingrao/SHRED-MPC](https://github.com/andreaingrao/SHRED-MPC) (private; access required). Contact information remains pending. No institutional endorsement or publication status is implied.
+![SHRED-ROM overview: sensor histories, recurrent encoder, shallow decoder and POD reconstruction.](website/assets/shred-rom.png)
 
-## Research question and method
+*Upstream SHRED-ROM architecture, reproduced from [Matteo Tomasetto’s repository](https://github.com/MatteoTomasetto/shred-rom) under its [MIT license](website/assets/LICENSE-SHRED-ROM.txt). This illustrates the reconstruction method on which the project builds; the control-conditioned prediction window is shown below.*
 
-Sparse sensing can reduce the observation burden of a flow controller. The central question here is whether a pressure-field predictor preserves the force response and candidate ranking needed for control. A small field error alone does not answer that question.
+## Method
 
-![SHRED-MPC pipeline](website/assets/figures/pipeline.svg)
+The pressure model pairs an earlier sensor window with the later pressure field and the corresponding rotation input. At each control step, the same sensor history is evaluated with several candidate ramp-and-hold rotation commands. The controller selects a command using lift tracking, oscillation and control-move costs, advances CFD for the control horizon, and updates the history.
 
-1. Combine a history of sparse cell-centre pressure observations with a proposed rotation history.
-2. Use an LSTM and shallow decoder to predict compressed pressure coefficients and reconstruct the pressure field. Control is an explicit input; this is a fixed-offset forward-prediction formulation, distinct from same-time reconstruction.
-3. Integrate the near-cylinder pressure ring to obtain the **historical pressure-lift observable**. It excludes viscous force and is not a standard total lift coefficient.
-4. Score ramp-and-hold candidate controls using mean tracking error, within-window variability and a move penalty. Apply the first 25 samples, update observations, and repeat.
+![Original slide diagram showing the sensing window, shifted prediction window and rotation input omega.](website/assets/prediction-window.png)
 
-The current implementation uses 50-sample histories and a 50-sample trained offset. The saved July experiment used 12 pressure channels; current defaults use seven. [Method, indexing and physical configuration](docs/method.md).
+*Prediction-window diagram from slide 5 of Andrea Ingrao’s project presentation. The original code’s pressure-derived lift convention is retained; it is not a total-force calculation.*
 
-## Selected evidence
+[Watch the original cylinder-control demonstration](website/assets/cylinder-control.mp4) · [Open the project website](website/index.html)
 
-The available archive contains one model and one partial control rollout: 50 decisions with five candidate evaluations each. The following descriptive results use the 42 decisions eligible after the recorded warm-up threshold (`controller_timestep >= 250`). Candidate evaluations within a rollout are correlated.
+## Quickstart
 
-| Quantity | Result | Interpretation |
-|---|---:|---|
-| Pressure window relative L2 | Median **3.06%**, IQR 2.38–3.66% | 210 eligible candidate windows; all field points and 50 positions |
-| Pressure-lift trajectory relative L2 | Median **18.43%**, IQR 14.89–20.27% | Same windows, historical observable |
-| Candidate-choice disagreement | **27 of 42 decisions** | Compared with the minimum CFD cost among the five evaluated candidates |
-| Selected CFD cost regret | Median **0.0193** | Absolute difference from that discrete CFD minimum; composite cost units |
+Run these commands from this repository’s root. The dataset and trained model are generated locally and are not included.
 
-Source: `run_20260713_121325_067474`, model `training_000`; [curated CSV](data/curated/candidate_statistics.csv), [metadata and hashes](data/curated/provenance.json), [metrics and selection rules](docs/results.md). IQR describes candidate spread, not confidence or independent-model variability. Relative lift errors are calculated over complete windows; these reference norms are not near zero.
+### Install
 
-![Prediction error and candidate decision quality](website/assets/figures/decision-quality.png)
-
-These observations motivate evaluating pressure, force observables and control decisions together. They do not establish superiority over another controller, robustness across independent trainings, or a measured speedup. The slide’s 1,680-candidate panel has no matching source archive here and is not used as evidence.
-
-## My contribution
-
-I designed and implemented the project’s CFD/data workflow, pressure-based SHRED adaptation, candidate-control loop, experiment tooling and analysis. Matteo Tomasetto and Andrea Manzoni provided theoretical guidance. This contribution statement follows Andrea’s account; upstream SHRED architecture and software are credited separately. [People and acknowledgments](docs/credits.md).
-
-## Quick start: inspect real results without CFD or training
-
-Python 3.12.3 was verified. From this repository’s root:
+The checked environment is Python 3.12, PySHRED 1.0.21, OpenFOAM Foundation 13 and ParaView 5.11.2. `requirements.txt` records the observed Python versions.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[demo]'
-python scripts/verify_curated.py
-python scripts/make_figures.py --output runs/demo
+python -m pip install -r requirements.txt
+
+# Use the path of your OpenFOAM installation.
+source /opt/openfoam13/etc/bashrc
+command -v blockMesh pimpleFoam foamToVTK pvpython
 ```
 
-Open `runs/demo/fields.png` or `runs/demo/decision-quality.svg`. The demo uses about 1.8 MB of real archived data, NumPy and Matplotlib. It does not fit a model or run a solver, and refuses an existing output directory. Add `--animation` if `ffmpeg` is available. The supplied website already includes static figures and a five-second compressed animation.
+The scripts call `pimpleFoam`; in the checked Foundation 13 installation this invokes `foamRun -solver incompressibleFluid`. ParaView supplies `pvpython` separately from the Python virtual environment. Training alone does not require CFD software. A fresh internet installation has not been tested; checks used the installed versions listed above.
 
-For the local project website:
+### 1. Generate the dataset
+
+All settings remain in **[`shred_utils/input_var.py`](shred_utils/input_var.py)**. The current setup generates 500 cases with these four control-history families:
+
+```python
+DATASET_RAMP_CASES = 200
+DATASET_RAMP_HOLD_CASES = 150
+DATASET_VARIED_CASES = 100
+DATASET_EXTENDED_HOLD_CASES = 50
+```
+
+`DATASET_CASES` is their sum. To start with **10 simulations**, change those four values to **4, 3, 2, 1**. Set `DATASET_SEED = 42` to repeat the control tables; the unchanged default `None` draws new histories. Leave `DATASET_DIMENSIONS = -1` to train on all configured cases.
 
 ```bash
-python scripts/build_site.py
+bash OpenFoam/runDataSet.sh --dry-run  # Print the plan; run no CFD.
+bash OpenFoam/runDataSet.sh            # Generate CFD and export pressure CSVs.
+```
+
+The launcher uses `OpenFoam/0`, `constant` and `system`, generates a rotation table for each case with `test2.py`, then runs meshing, CFD and CSV export. **The supplied `0/` is the required initial state**, including nonuniform fields; do not replace it with an empty folder. Output goes to `OpenFoam/case_omega*/` and `OpenFoam/CSV_files/case_omega*/`. Each CSV folder contains `datacsv_*.csv` and its `omega_t_table.txt`; `p` is normalized pressure, with raw pressure retained as `p_raw`.
+
+The launcher refuses an existing campaign. For another dataset, move both output groups aside or use a fresh repository copy. The full setup needs substantial disk space and memory; use a small pilot first. The current setup matches the saved campaign’s case count and output timing, but no recorded seed establishes the exact original random trajectories.
+
+### 2. Train the pressure model
+
+Set `shred_epochs`, `shred_device` and, if needed, `shred_pod_compression` in `input_var.py`. Keep the sensor IDs and time-window settings consistent between training and MPC.
+
+```bash
+python shred_MPC_test_p.py --train-only --model models/pressure
+```
+
+For an existing dataset stored elsewhere:
+
+```bash
+python shred_MPC_test_p.py --train-only --model models/pressure \
+  --dataset /absolute/path/to/CSV_files
+```
+
+Training uses the original pressure-training function. It saves weights, fitted preprocessing/POD transforms, the original initialization history and a settings snapshot under `models/pressure/`. Choose a new model directory for another training run. Only load model folders you created or trust.
+
+### 3. Run the lift-following MPC
+
+```bash
+python shred_MPC_test_p.py --model models/pressure --run-dir runs/lift-01
+```
+
+This loads the saved model without retraining, copies the supplied `MPC_OpenFoam` case into a new run folder and executes the original control loop. CFD files and the existing controller diagnostic plots stay inside that folder. For another run, use `runs/lift-02`.
+
+Set `N_cycles` and `LIFT_TARGET_SEED` in `input_var.py` to control run length and repeat the generated lift-target sequence. Existing run directories are never overwritten. The initial CFD state and the historical observation-history initialization are preserved; their alignment still needs a full-run scientific check. The supplied CFD dictionaries retain their original `steadyState` setting.
+
+## Files
+
+```text
+shred_MPC_test_p.py      Train, save/load, and run pressure-based MPC
+shred_utils/            Existing settings and required helper functions
+OpenFoam/               Dataset launcher and complete initial CFD case
+MPC_OpenFoam/           Initial MPC case and pressure CSV exporter
+DataSet_to_CSV.py       Dataset pressure export (called by the launcher)
+test2.py                Existing rotation-table generator
+requirements.txt       Observed Python dependency versions
+tests/                 Dataset and launch checks
+website/               Static project page and original visual material
+```
+
+No dataset, trained checkpoint, statistical-analysis workflow or experiment archive is included. See [NOTES.md](NOTES.md) for the small launch changes, checks and media credits.
+
+## People
+
+Developed by **Andrea Ingrao**, who carried out the design, implementation and experimental work, with theoretical guidance from **Matteo Tomasetto** and **Prof. Andrea Manzoni**, in the **MOX, Politecnico di Milano** project context. Upstream SHRED-ROM and PySHRED are credited separately from these project contributions.
+
+## Check and preview
+
+```bash
+python -m unittest discover -s tests -v
 python -m http.server 8000 --bind 127.0.0.1 --directory website
 ```
 
-Open **http://127.0.0.1:8000/**. No backend, external fonts, analytics or network data fetching are used. [GitHub Pages instructions](docs/deployment.md).
-
-## Research workflows
-
-Install `python -m pip install -e '.[research]'` for the PySHRED/Torch workflow. Installed versions were recorded; they are tested environment pins, not claims about minimum compatibility. OpenFOAM and ParaView are separate system dependencies.
-
-```bash
-# Safe: generate a complete control table without CFD.
-shred-control-table 0 --seed 42 --output runs/omega0.txt
-
-# Safe: plan matched temporal-evaluation scenarios.
-shred-temporal --dry-run --run-dir runs/temporal-plan
-
-# Safe: prepare fresh CFD cases/control histories without simulation.
-shred-dataset plan --run-dir runs/dataset-plan --cases 10 --seed 42
-
-# Focused software checks (full set needs the research extras).
-python -m unittest discover -s tests -v
-```
-
-Dataset generation/export, standalone training, explicit MPC execution and temporal evaluation have **separate instructions** in [workflows](docs/workflows.md). Expensive commands require `--execute`; owned run directories isolate simulations. Historical MPC is retained for inspection and explicit isolated execution, with its unresolved initialization issues documented.
-
-## Repository layout
-
-```text
-src/shred_mpc/       Maintained configuration, preprocessing, schedules and temporal tools
-scripts/            Evidence verification, figure regeneration and website preparation
-tests/              Focused numerical, persistence, indexing and isolation checks
-configs/            Configuration guide; resolved settings are saved per run
-cfd/templates/      Training and MPC inputs, including mesh and boundary dictionaries
-data/curated/       Small real result sample, metadata and provenance hashes
-docs/               Method, evidence, workflows, audit, credits and release checklist
-website/            Buildless GitHub Pages site and optimized scientific assets
-archive/            Annotated historical source as non-executable text
-LICENSES/           Preserved upstream notices; no project-wide license selected
-```
-
-Datasets, trained models and generated runs belong outside source control. [Original-to-export mapping](docs/file-mapping.md) explains every retained family; a machine-readable mapping identifies copied files. The original workspace remains unchanged.
-
-## Status and limits
-
-- **Completed evidence:** the curated July candidate archive and its reproducible offline analysis. No historical trained checkpoint or preprocessing transforms were found, so those forecasts cannot be regenerated by model inference from this export.
-- **Implemented, not scientifically evaluated here:** isolated temporal scenario generation, model/transform persistence, repeated training seeds and resumable CFD references.
-- **Physical limitation:** current templates specify `steadyState`; October logs confirm SIMPLE steady-state operation. Nominal solver labels must not be interpreted as verified physical transient time. The exact July solver dictionaries were not saved.
-- **Further limitations:** pressure-ring force convention, upstream pressure-reference access, historical initialization, restricted initial-state diversity, no mesh/time convergence study or independent controller baseline.
-- **Proposed research:** establish a physically interpretable plant, synchronize sensing/control/checkpoints, validate force integration, and evaluate held-out control responses. [Prioritized roadmap](docs/roadmap.md).
-
-The full dataset stays local by choice. The current 500-case dataset is a later regeneration and is not identified as the July model’s training data. Generation code is supplied; public redistribution and a full reproduction campaign remain separate decisions. [Reproducibility boundaries and validation](docs/validation.md).
-
-## Credit and references
-
-The maintained workflow uses [PySHRED](https://github.com/pyshred-dev/pyshred). The older local SHRED code corresponds closely to [SHRED-ROM](https://github.com/MatteoTomasetto/SHRED-ROM); its MIT notice is retained with the archived source. OpenFOAM, ParaView, NumPy, SciPy, scikit-learn, PyTorch and Matplotlib underpin the computation and analysis.
-
-- Williams, Zahn and Kutz, *Sensing with shallow recurrent decoder networks*, Proc. R. Soc. A (2024), [doi:10.1098/rspa.2024.0054](https://doi.org/10.1098/rspa.2024.0054).
-- Tomasetto et al., *Reduced order modeling with shallow recurrent decoder networks*, Nature Communications 16, 10260 (2025), [doi:10.1038/s41467-025-65126-y](https://doi.org/10.1038/s41467-025-65126-y).
-
-No novelty priority, DOI, formal project authorship order or publication is claimed. Project-wide licensing remains undecided; see [rights and release decisions](docs/release.md).
+Open **http://127.0.0.1:8000/**. The website also opens directly from `website/index.html`. Tests include a tiny synthetic training/save/load check; they do not run CFD. GitHub Pages deployment is manual and remains unapproved. Nothing in this export automatically uploads or publishes.
