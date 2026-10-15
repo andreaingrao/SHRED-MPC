@@ -30,6 +30,8 @@ h2 { font-size:clamp(28px,3.5vw,36px); margin:0 0 22px; max-width:750px; }
 h3 { font-size:20px; font-weight:600; margin:37px 0 16px; }
 p { max-width:800px; margin:0 0 20px; }
 .architecture { padding:12px 0; }
+.mpc-structure { margin:32px 0 40px; }
+.mpc-structure img { border:1px solid var(--rule); }
 .aside { color:var(--muted); font-size:14px; }
 picture, picture img { display:block; width:100%; height:auto; background:#fff; }
 code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.84em; overflow-wrap:anywhere; }

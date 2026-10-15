@@ -1,10 +1,10 @@
 # SHRED-MPC
 
-**Pressure prediction and lift-following control of a rotating cylinder.**
+**MPC for rotating-cylinder lift control, using SHRED as a surrogate model from sparse pressure measurements.**
 
-![Full 52-second cylinder-control demonstration: CFD and predicted pressure alongside the lift target.](website/assets/cylinder-control.gif)
+![Full cylinder-control demonstration: CFD and predicted pressure alongside the lift target.](website/assets/cylinder-control.gif)
 
-*Full-duration GIF converted from the original project video. It plays directly here; no separate player or video link is needed.*
+*Cylinder-control demonstration: CFD pressure, SHRED pressure prediction and error fields are shown alongside the predicted and target lift histories.*
 
 This project uses a control-conditioned Shallow Recurrent Decoder (SHRED) to predict pressure fields from sparse pressure observations and a candidate rotation history. Model predictive control evaluates these histories using a pressure-derived lift observable, applies the first part of the chosen rotation command in OpenFOAM, and repeats with updated observations.
 
@@ -15,6 +15,10 @@ This project uses a control-conditioned Shallow Recurrent Decoder (SHRED) to pre
 ## Method
 
 The pressure model pairs an earlier sensor window with the later pressure field and the corresponding rotation input. At each control step, the same sensor history is evaluated with several candidate ramp-and-hold rotation commands. The controller selects a command using lift tracking, oscillation and control-move costs, advances CFD for the control horizon, and updates the history.
+
+![MPC structure with SHRED acting as a surrogate pressure model. Sparse pressure and rotation history enter SHRED; candidate rotation profiles are evaluated from predicted pressure-derived lift; the optimizer applies one selected segment to CFD, which returns new measurements.](website/assets/mpc-surrogate-structure.svg)
+
+*The receding-horizon MPC loop implemented in this project. SHRED is the learned surrogate inside the controller: it screens candidate rotation profiles through predicted pressure and a pressure-derived lift observable. The optimizer sends its selected first segment to OpenFOAM; new sparse observations start the next cycle.*
 
 ![Original slide diagram showing the sensing window, shifted prediction window and rotation input omega.](website/assets/prediction-window.png)
 
@@ -94,7 +98,7 @@ Set `N_cycles` and `LIFT_TARGET_SEED` in `input_var.py` to control run length an
 ## Files
 
 ```text
-shred_mpc_launcher.py      Train, save/load, and run pressure-based MPC
+shred_mpc_launcher.py    Train, save/load, and run pressure-based MPC
 shred_utils/            Existing settings and required helper functions
 OpenFoam/               Dataset launcher and complete initial CFD case
 MPC_OpenFoam/           Initial MPC case and pressure CSV exporter
