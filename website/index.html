@@ -18,11 +18,11 @@
     <p class="byline">Andrea Ingrao · MOX, Politecnico di Milano</p>
     <h1 id="title">Pressure prediction<br>for cylinder control.</h1>
     <figure id="demonstration" class="hero-video">
-      <video controls muted playsinline preload="metadata" poster="assets/cylinder-control.jpg" width="1152" height="420" aria-label="Original silent cylinder-control demonstration: CFD and predicted pressure fields alongside the lift target and histories.">
-        <source src="assets/cylinder-control.mp4" type="video/mp4">
-        <a href="assets/cylinder-control.mp4">Download the cylinder-control video.</a>
-      </video>
-      <figcaption><a href="assets/cylinder-control.mp4">Open the full video · 52 seconds</a>. From the original <code>0001-1249.mp4</code>, with lower error panels cropped out. Illustration of the original project, not validation of this export.</figcaption>
+      <picture>
+        <source srcset="assets/cylinder-control.jpg" media="(prefers-reduced-motion: reduce)">
+        <img src="assets/cylinder-control.gif" width="768" height="280" alt="Full 52-second demonstration. The CFD and predicted pressure fields change over time beside the pressure-lift history and target; lower error panels are cropped out.">
+      </picture>
+      <figcaption>The complete 52-second source clip, with lower error panels cropped out.</figcaption>
     </figure>
     <p class="lead">A control-conditioned Shallow Recurrent Decoder predicts flow pressure from sparse observations. Model predictive control uses those predictions to choose the cylinder’s next rotation command.</p>
     <p class="intro-links"><a href="#method">Explore the method <span aria-hidden="true">↓</span></a><a href="#quickstart">Run the code <span aria-hidden="true">↓</span></a></p>
@@ -79,6 +79,5 @@ bash OpenFoam/runDataSet.sh</code></pre>
   </section>
 </main>
 <footer><span>SHRED-MPC · Local review version</span><a href="#main">Back to top ↑</a></footer>
-  <script src="video.js" defer></script>
 </body>
 </html>
