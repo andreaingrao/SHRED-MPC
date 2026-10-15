@@ -31,7 +31,7 @@ The pressure model pairs an earlier sensor window with the later pressure field 
 
 ![One sensing-window example: L timesteps of sparse pressure measurements plus a candidate rotation channel enter the same trained SHRED model, which predicts future pressure fields over all spatial locations. Changing the candidate parameter gives an alternative predicted field on the same mesh.](website/assets/sensing-window.svg)
 
-*One parameter-conditioned prediction example, based on slides 9 and 17 of Andrea Ingrao’s `SHRED - MPC.pptx`. Each input column contains the sparse measurements at one timestep; the candidate rotation is added as a feature channel. The same trained model decodes future pressure fields for each candidate. Rotation inputs and pressure outputs use matching prediction-window timesteps; superscript j identifies the candidate sequence. The MPC implementation uses ramp-and-hold profiles and its configured observation–prediction time offset. [Editable SVG](website/assets/sensing-window.svg) · [PDF](website/assets/sensing-window.pdf).*
+*Each input column contains the sparse measurements at one timestep; the candidate rotation is added as a feature channel. The same trained model decodes future pressure fields for each candidate. Rotation inputs and pressure outputs use matching prediction-window timesteps; superscript j identifies the candidate sequence. The MPC implementation uses ramp-and-hold profiles and its configured observation–prediction time offset.*
 
 SHRED-ROM receives in input a lag of sensor measurements and decodes the entire state space of the associated timestep. 
 
