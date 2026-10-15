@@ -4,7 +4,7 @@ This export starts from Andrea’s original scripts, not the previous packaged r
 
 ## What changed
 
-- Kept `shred_MPC_test_p.py`, `test2.py`, the two case folders and the existing `shred_utils` settings/helpers at their original paths. The controller body and pressure-training function are unchanged.
+- Renamed the main entry point to `shred_mpc_launcher.py`; its training and controller behavior is unchanged. Kept `test2.py`, the two case folders and the existing `shred_utils` settings/helpers at their original paths. The controller body and pressure-training function are unchanged.
 - Reduced `shred_utils/functions.py` from 75 to 34 functions by retaining the pressure workflow’s dependencies. Removed velocity examples, alternative controllers, statistical/temporal evaluation, unused legacy SHRED code, scratch scripts and generated outputs from this export.
 - Added `--train-only`, model saving/loading and `--run-dir` to the existing MPC script. Model artifacts include the fitted scalers/POD transforms and the original case-zero history, so MPC does not retrain or reload the full dataset.
 - Added main guards and removed the import-time directory creation. Kept settings in `input_var.py`; no new package, configuration layer or framework.

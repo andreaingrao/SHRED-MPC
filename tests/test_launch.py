@@ -12,7 +12,7 @@ from unittest.mock import patch
 import numpy as np
 import torch
 from pyshred import ParametricSHREDEngine
-import shred_MPC_test_p as launch
+import shred_mpc_launcher as launch
 from shred_utils import functions, input_var
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,7 +51,7 @@ class LaunchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             for args in (['--train-only', '--model', directory],
                          ['--model', 'missing-model', '--run-dir', directory]):
-                result = subprocess.run([sys.executable, str(ROOT / 'shred_MPC_test_p.py'), *args],
+                result = subprocess.run([sys.executable, str(ROOT / 'shred_mpc_launcher.py'), *args],
                                         cwd=directory, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 2)
                 self.assertIn('already exists', result.stderr)
@@ -70,7 +70,7 @@ class LaunchTests(unittest.TestCase):
 
     def test_imports_do_not_write_to_working_directory(self):
         with tempfile.TemporaryDirectory() as directory:
-            code = "import shred_MPC_test_p, DataSet_to_CSV, test2; import shred_utils.functions"
+            code = "import shred_mpc_launcher, DataSet_to_CSV, test2; import shred_utils.functions"
             environment = {**os.environ, 'PYTHONPATH': str(ROOT), 'PYTHONDONTWRITEBYTECODE': '1'}
             subprocess.run([sys.executable, '-c', code], cwd=directory, env=environment, check=True,
                            capture_output=True, text=True)

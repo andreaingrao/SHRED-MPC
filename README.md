@@ -69,13 +69,13 @@ The launcher refuses an existing campaign. For another dataset, move both output
 Set `shred_epochs`, `shred_device` and, if needed, `shred_pod_compression` in `input_var.py`. Keep the sensor IDs and time-window settings consistent between training and MPC.
 
 ```bash
-python shred_MPC_test_p.py --train-only --model models/pressure
+python shred_mpc_launcher.py --train-only --model models/pressure
 ```
 
 For an existing dataset stored elsewhere:
 
 ```bash
-python shred_MPC_test_p.py --train-only --model models/pressure \
+python shred_mpc_launcher.py --train-only --model models/pressure \
   --dataset /absolute/path/to/CSV_files
 ```
 
@@ -84,7 +84,7 @@ Training uses the original pressure-training function. It saves weights, fitted 
 ### 3. Run the lift-following MPC
 
 ```bash
-python shred_MPC_test_p.py --model models/pressure --run-dir runs/lift-01
+python shred_mpc_launcher.py --model models/pressure --run-dir runs/lift-01
 ```
 
 This loads the saved model without retraining, copies the supplied `MPC_OpenFoam` case into a new run folder and executes the original control loop. CFD files and the existing controller diagnostic plots stay inside that folder. For another run, use `runs/lift-02`.
@@ -94,7 +94,7 @@ Set `N_cycles` and `LIFT_TARGET_SEED` in `input_var.py` to control run length an
 ## Files
 
 ```text
-shred_MPC_test_p.py      Train, save/load, and run pressure-based MPC
+shred_mpc_launcher.py      Train, save/load, and run pressure-based MPC
 shred_utils/            Existing settings and required helper functions
 OpenFoam/               Dataset launcher and complete initial CFD case
 MPC_OpenFoam/           Initial MPC case and pressure CSV exporter

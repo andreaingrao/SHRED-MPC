@@ -64,10 +64,10 @@ DATASET_SEED = 42</code></pre>
 bash OpenFoam/runDataSet.sh</code></pre>
     <p>The original defaults are 200, 150, 100 and 50 cases. Keep the supplied <code>OpenFoam/0</code> initial fields, mesh and dictionaries. The launcher writes the dataset to <code>OpenFoam/CSV_files</code> and refuses to overwrite a previous campaign. A fixed seed repeats the control histories; the exact original random histories are not included.</p>
     <h3>2. Train the pressure model</h3>
-<pre><code>python shred_MPC_test_p.py --train-only --model models/pressure</code></pre>
+<pre><code>python shred_mpc_launcher.py --train-only --model models/pressure</code></pre>
     <p>Set the epochs and device in <code>input_var.py</code>. Training saves the weights, fitted transforms and initialization history. For data stored elsewhere, add <code>--dataset /absolute/path/to/CSV_files</code>. Neither the dataset nor a pretrained model is bundled.</p>
     <h3>3. Run the lift-following MPC</h3>
-<pre><code>python shred_MPC_test_p.py --model models/pressure --run-dir runs/lift-01</code></pre>
+<pre><code>python shred_mpc_launcher.py --model models/pressure --run-dir runs/lift-01</code></pre>
     <p>The script loads the saved model and copies the initial MPC case into a fresh run directory. Set <code>N_cycles</code> and <code>LIFT_TARGET_SEED</code> in <code>input_var.py</code>. Use a new run name each time.</p>
     <p class="aside">The original control loop is preserved. Initial observation/CFD alignment still needs full-run validation, and the supplied dictionaries retain <code>steadyState</code>. See the repository’s README and NOTES for launch details and the checks performed.</p>
   </section>
