@@ -11,40 +11,37 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="masthead">
   <a class="wordmark" href="#main">SHRED-MPC</a>
-  <nav aria-label="Main navigation"><a href="#method">Method</a><a href="#demonstration">Demonstration</a><a href="#quickstart">Quickstart</a><a href="#people">People</a></nav>
+  <nav aria-label="Main navigation"><a href="#demonstration">Demonstration</a><a href="#method">Method</a><a href="#quickstart">Quickstart</a><a href="#people">People</a></nav>
 </header>
 <main id="main">
   <section class="intro" aria-labelledby="title">
     <p class="byline">Andrea Ingrao · MOX, Politecnico di Milano</p>
-    <h1>Pressure prediction<br>for cylinder control.</h1>
+    <h1 id="title">Pressure prediction<br>for cylinder control.</h1>
+    <figure id="demonstration" class="hero-video">
+      <video controls muted playsinline preload="metadata" poster="assets/cylinder-control.jpg" width="1152" height="420" aria-label="Original silent cylinder-control demonstration: CFD and predicted pressure fields alongside the lift target and histories.">
+        <source src="assets/cylinder-control.mp4" type="video/mp4">
+        <a href="assets/cylinder-control.mp4">Download the cylinder-control video.</a>
+      </video>
+      <figcaption><a href="assets/cylinder-control.mp4">Open the full video · 52 seconds</a>. From the original <code>0001-1249.mp4</code>, with lower error panels cropped out. Illustration of the original project, not validation of this export.</figcaption>
+    </figure>
     <p class="lead">A control-conditioned Shallow Recurrent Decoder predicts flow pressure from sparse observations. Model predictive control uses those predictions to choose the cylinder’s next rotation command.</p>
     <p class="intro-links"><a href="#method">Explore the method <span aria-hidden="true">↓</span></a><a href="#quickstart">Run the code <span aria-hidden="true">↓</span></a></p>
   </section>
-  <figure class="overview">
-    <a href="assets/shred-rom.png" aria-label="Open the SHRED-ROM overview at full size"><img src="assets/shred-rom.png" width="960" height="600" alt="SHRED-ROM combines sensor histories, an LSTM, a shallow decoder and POD to reconstruct flow fields."></a>
-    <figcaption>The underlying SHRED-ROM reconstruction architecture. Image from <a href="https://github.com/MatteoTomasetto/shred-rom">Matteo Tomasetto’s SHRED-ROM repository</a>, reproduced under its <a href="assets/LICENSE-SHRED-ROM.txt">MIT license</a>. The diagram below shows this project’s prediction extension.</figcaption>
-  </figure>
   <section id="method" aria-labelledby="method-title">
     <p class="eyebrow">Method</p>
     <h2 id="method-title">From a sensing window to a control decision</h2>
     <p>Instead of reconstructing only the observed state, the pressure model pairs an earlier sensor window with a later pressure field and the corresponding rotation input. This lets the controller evaluate several possible future commands using the same observation history.</p>
+  <figure class="overview">
+    <a href="assets/shred-rom.png" aria-label="Open the SHRED-ROM overview at full size"><img src="assets/shred-rom.png" width="960" height="600" alt="SHRED-ROM combines sensor histories, an LSTM, a shallow decoder and POD to reconstruct flow fields."></a>
+    <figcaption>The underlying SHRED-ROM reconstruction architecture. Image from <a href="https://github.com/MatteoTomasetto/shred-rom">Matteo Tomasetto’s SHRED-ROM repository</a>, reproduced under its <a href="assets/LICENSE-SHRED-ROM.txt">MIT license</a>. The diagram below shows this project’s prediction extension.</figcaption>
+  </figure>
+
     <figure class="architecture">
       <a href="assets/prediction-window.png" aria-label="Open the original prediction-window diagram at full size"><img src="assets/prediction-window.png" width="1380" height="510" loading="lazy" alt="Original slide blocks show a sensing history x, shifted predicted outputs y, and cylinder rotation omega added as a control input."></a>
       <figcaption>The original prediction-window diagram from slide 5 of Andrea Ingrao’s project presentation. Here x denotes observations, y the predicted output, and ω the rotation input.</figcaption>
     </figure>
     <p>For each candidate rotation, SHRED predicts pressure and the code computes a pressure-derived lift observable. The controller balances lift tracking, oscillation and changes in rotation, applies the first part of the selected command in OpenFOAM, and updates the history before making the next decision.</p>
     <p class="aside">The code retains the project’s pressure-lift convention and initial CFD settings. The observable is not total aerodynamic lift.</p>
-  </section>
-  <section id="demonstration" aria-labelledby="demo-title">
-    <p class="eyebrow">Original project media</p>
-    <h2 id="demo-title">The cylinder-control loop</h2>
-    <figure>
-      <video controls playsinline preload="metadata" poster="assets/cylinder-control.jpg" width="1536" height="560" aria-label="Original silent cylinder-control demonstration: CFD and predicted pressure fields alongside the lift target and histories.">
-        <source src="assets/cylinder-control.mp4" type="video/mp4">
-        <a href="assets/cylinder-control.mp4">Download the cylinder-control video.</a>
-      </video>
-      <figcaption>From the original Desktop video <code>0001-1249.mp4</code>. The pressure fields and lift-target history are retained; the lower error panels are cropped out. This is an illustration from the original project, not a benchmark of this cleaned export. The silent video plays only when selected.</figcaption>
-    </figure>
   </section>
   <section id="quickstart" aria-labelledby="quickstart-title">
     <p class="eyebrow">Quickstart</p>
@@ -82,5 +79,6 @@ bash OpenFoam/runDataSet.sh</code></pre>
   </section>
 </main>
 <footer><span>SHRED-MPC · Local review version</span><a href="#main">Back to top ↑</a></footer>
+  <script src="video.js" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 
 **Pressure prediction and lift-following control of a rotating cylinder.**
 
+[![Watch the cylinder-control demonstration: CFD and predicted pressure alongside the lift target.](website/assets/cylinder-preview.gif)](website/assets/cylinder-control.mp4?raw=true)
+
+**[Open the full video · 52 seconds](website/assets/cylinder-control.mp4?raw=true)** · [Static preview](website/assets/cylinder-control.jpg)
+
+*Six-second animated excerpt from the original project video; select it to open or download the full demonstration.*
+
 This project uses a control-conditioned Shallow Recurrent Decoder (SHRED) to predict pressure fields from sparse pressure observations and a candidate rotation history. Model predictive control evaluates these histories using a pressure-derived lift observable, applies the first part of the chosen rotation command in OpenFOAM, and repeats with updated observations.
 
 ![SHRED-ROM overview: sensor histories, recurrent encoder, shallow decoder and POD reconstruction.](website/assets/shred-rom.png)
@@ -16,7 +22,7 @@ The pressure model pairs an earlier sensor window with the later pressure field 
 
 *Prediction-window diagram from slide 5 of Andrea Ingrao’s project presentation. The original code’s pressure-derived lift convention is retained; it is not a total-force calculation.*
 
-[Watch the original cylinder-control demonstration](website/assets/cylinder-control.mp4) · [Open the project website](website/index.html)
+[Open the project website](website/index.html)
 
 ## Quickstart
 
