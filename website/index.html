@@ -32,7 +32,7 @@
     <h2 id="method-title">From a sensing window to a control decision</h2>
     <p>Instead of reconstructing only the observed state, the pressure model pairs an earlier sensor window with a later pressure field and the corresponding rotation input. This lets the controller evaluate several possible future commands using the same observation history.</p>
     <figure class="mpc-structure">
-      <a href="assets/mpc-surrogate-structure.svg" aria-label="Open the MPC and SHRED surrogate diagram at full size"><img src="assets/mpc-surrogate-structure.svg" width="1600" height="1000" loading="lazy" alt="Receding-horizon MPC diagram: pressure and rotation history feed the SHRED surrogate, whose predicted pressure and pressure-derived lift score candidate rotations. The optimizer applies one selected segment to OpenFOAM CFD; new measurements update the history."></a>
+      <a href="assets/mpc-surrogate-structure.svg" aria-label="Open the MPC and SHRED surrogate diagram at full size"><img src="assets/mpc-surrogate-structure.svg" width="1600" height="850" loading="lazy" alt="Receding-horizon MPC diagram: pressure and rotation history feed the SHRED surrogate, whose predicted pressure and pressure-derived lift score candidate rotations. The optimizer applies one selected segment to OpenFOAM CFD; new measurements update the history."></a>
       <figcaption>The implemented MPC structure. SHRED serves as the surrogate inside the controller: it predicts pressure for each candidate rotation, and the optimizer uses the derived lift observable to select the next CFD input. The CFD model then advances one segment and returns new observations.</figcaption>
     </figure>
   <figure class="overview">
