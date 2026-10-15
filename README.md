@@ -17,7 +17,7 @@ Using this as the surrogate model means being capable of:
 ## Method
 
 
-For each MPC update, the history of  are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC [3]. Related work has also combined learned recurrent surrogates, sparse sensing, and MPC for flow control [4].
+For each MPC update, the history of  are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC.
 
 ![MPC structure with SHRED acting as a surrogate pressure model. Sparse pressure and rotation history enter SHRED; candidate rotation profiles are evaluated from predicted pressure-derived lift; the optimizer applies one selected segment to CFD, which returns new measurements.](website/assets/mpc-surrogate-structure.svg)
 
@@ -139,8 +139,6 @@ Developed by **Andrea Ingrao**, who carried out the design, implementation and e
 
 1. J. P. Williams, O. Zahn, and J. N. Kutz, “Sensing with shallow recurrent decoder networks,” arXiv:2301.12011, 2023. [arXiv](https://arxiv.org/abs/2301.12011).
 2. M. Tomasetto, J. P. Williams, F. Braghin, et al., “Reduced order modeling with shallow recurrent decoder networks,” *Nature Communications*, 16, 10260, 2025. [doi:10.1038/s41467-025-65126-y](https://doi.org/10.1038/s41467-025-65126-y).
-3. D. Q. Mayne, J. B. Rawlings, C. V. Rao, and P. O. M. Scokaert, “Constrained model predictive control: Stability and optimality,” *Automatica*, 36(6), 789–814, 2000. [doi:10.1016/S0005-1098(99)00214-9](https://doi.org/10.1016/S0005-1098(99)00214-9).
-4. K. Bieker, S. Peitz, S. L. Brunton, et al., “Deep model predictive flow control with limited sensor data and online learning,” *Theoretical and Computational Fluid Dynamics*, 34, 577–591, 2020. [doi:10.1007/s00162-020-00520-4](https://doi.org/10.1007/s00162-020-00520-4).
 
 ## Check and preview
 
