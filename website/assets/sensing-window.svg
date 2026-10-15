@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="730" viewBox="0 0 1800 730" role="img" aria-labelledby="title desc">
 <title id="title">Parameter-conditioned SHRED: one sensing window, different candidate futures</title>
-<desc id="desc">A full lag of L sparse-pressure measurement vectors is combined with an additional rotation-parameter channel. A single trained SHRED surrogate, consisting of a recurrent encoder and a shallow decoder with spatial reconstruction, predicts a future window of pressure fields at all mesh locations. Keeping the measured history and weights fixed while changing the rotation parameter produces different predicted fields on the same mesh. A constant parameter is shown to simplify this conceptual example; the implementation uses ramp-and-hold profiles and its configured observation-prediction offset.</desc>
+<desc id="desc">A lag of L sparse pressure measurement vectors, from t-L+1 through t, is paired with candidate future rotations omega^(j) at t+1, t+2, ..., t+H. These controls share the prediction window of the decoded pressure fields p_hat^(j) at t+1 through t+H. The candidate index j is a superscript and the timestep is a subscript. A single trained recurrent encoder and shallow decoder reconstruct the pressure at all n spatial locations, using the same weights for each candidate sequence. The diagram shows the conceptual observation and prediction windows; the implementation uses its configured temporal alignment.</desc>
 <defs>
   <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#23677d"/></marker>
   <style>
@@ -17,86 +17,86 @@
     .line { fill:none; stroke:#23677d; stroke-width:3; stroke-linejoin:round; marker-end:url(#arrow); }
   </style>
 </defs>
-<rect width="1800" height="1000" fill="#fff"/>
+<rect width="1800" height="730" fill="#fff"/>
 <text x="60" y="70" class="title">Parameter-conditioned SHRED prediction</text>
-<text x="60" y="112" class="subtitle">One complete sensing window + a candidate rotation → a future pressure field</text>
+<text x="60" y="112" class="subtitle">One sensing history + a candidate rotation sequence → a future pressure window</text>
 <!-- One input example; no progressive versions of the architecture. -->
-<rect x="60" y="178" width="580" height="524" rx="19" fill="#f7fafb" stroke="#c8d7dd" stroke-width="2"/>
-<text x="88" y="217" class="step">1 / ASSEMBLE THE INPUT</text>
-<text x="88" y="259" class="heading">L timesteps of sparse measurements</text>
+<rect x="60" y="156" width="580" height="520" rx="19" fill="#f7fafb" stroke="#c8d7dd" stroke-width="2"/>
+<text x="88" y="195" class="step">1 / ASSEMBLE THE INPUT</text>
+<text x="88" y="237" class="heading">L timesteps of sparse measurements</text>
 
-<text x="153" y="303" class="muted" text-anchor="middle">t−L+1</text>
-<rect x="104" y="320" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
-<text x="153" y="351" class="math" text-anchor="middle">x₁</text>
-<text x="153" y="386" class="math" text-anchor="middle">x₂</text>
-<text x="153" y="420" class="math" text-anchor="middle">⋮</text>
-<text x="153" y="455" class="math" text-anchor="middle">xₘ</text>
-<text x="283" y="303" class="muted" text-anchor="middle">t−L+2</text>
-<rect x="234" y="320" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
-<text x="283" y="351" class="math" text-anchor="middle">x₁</text>
-<text x="283" y="386" class="math" text-anchor="middle">x₂</text>
-<text x="283" y="420" class="math" text-anchor="middle">⋮</text>
-<text x="283" y="455" class="math" text-anchor="middle">xₘ</text>
-<text x="413" y="303" class="muted" text-anchor="middle">⋯</text>
-<rect x="364" y="320" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
-<text x="413" y="405" class="math" text-anchor="middle">⋯</text>
-<text x="543" y="303" class="muted" text-anchor="middle">t</text>
-<rect x="494" y="320" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
-<text x="543" y="351" class="math" text-anchor="middle">x₁</text>
-<text x="543" y="386" class="math" text-anchor="middle">x₂</text>
-<text x="543" y="420" class="math" text-anchor="middle">⋮</text>
-<text x="543" y="455" class="math" text-anchor="middle">xₘ</text>
-<rect x="104" y="533" width="98" height="57" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
-<text x="153" y="571" class="math" text-anchor="middle" style="fill:#99521e">ωⱼ</text>
-<rect x="234" y="533" width="98" height="57" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
-<text x="283" y="571" class="math" text-anchor="middle" style="fill:#99521e">ωⱼ</text>
-<rect x="364" y="533" width="98" height="57" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
-<text x="413" y="571" class="math" text-anchor="middle" style="fill:#99521e">⋯</text>
-<rect x="494" y="533" width="98" height="57" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
-<text x="543" y="571" class="math" text-anchor="middle" style="fill:#99521e">ωⱼ</text>
-<text x="88" y="633" class="body" >Xₜ: L samples × m pressure sensors</text>
-<text x="88" y="670" class="body" style="fill:#99521e">Ωⱼ: one added rotation channel</text>
+<text x="153" y="281" class="muted" text-anchor="middle">t−L+1</text>
+<rect x="104" y="298" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
+<text x="153" y="329" class="math" text-anchor="middle">x₁</text>
+<text x="153" y="364" class="math" text-anchor="middle">x₂</text>
+<text x="153" y="398" class="math" text-anchor="middle">⋮</text>
+<text x="153" y="433" class="math" text-anchor="middle">xₘ</text>
+<text x="283" y="281" class="muted" text-anchor="middle">t−L+2</text>
+<rect x="234" y="298" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
+<text x="283" y="329" class="math" text-anchor="middle">x₁</text>
+<text x="283" y="364" class="math" text-anchor="middle">x₂</text>
+<text x="283" y="398" class="math" text-anchor="middle">⋮</text>
+<text x="283" y="433" class="math" text-anchor="middle">xₘ</text>
+<text x="413" y="281" class="muted" text-anchor="middle">⋯</text>
+<rect x="364" y="298" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
+<text x="413" y="383" class="math" text-anchor="middle">⋯</text>
+<text x="543" y="281" class="muted" text-anchor="middle">t</text>
+<rect x="494" y="298" width="98" height="151" rx="9" fill="#e4f0f4" stroke="#9ebbc7"/>
+<text x="543" y="329" class="math" text-anchor="middle">x₁</text>
+<text x="543" y="364" class="math" text-anchor="middle">x₂</text>
+<text x="543" y="398" class="math" text-anchor="middle">⋮</text>
+<text x="543" y="433" class="math" text-anchor="middle">xₘ</text>
+<text x="88" y="488" class="muted">Candidate controls · prediction window</text>
+<rect x="104" y="510" width="98" height="60" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
+<text x="153" y="548" class="math" text-anchor="middle" style="fill:#99521e">ω<tspan baseline-shift="sub" font-size="16">t+1</tspan><tspan baseline-shift="super" font-size="14">(j)</tspan></text>
+<rect x="234" y="510" width="98" height="60" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
+<text x="283" y="548" class="math" text-anchor="middle" style="fill:#99521e">ω<tspan baseline-shift="sub" font-size="16">t+2</tspan><tspan baseline-shift="super" font-size="14">(j)</tspan></text>
+<rect x="364" y="510" width="98" height="60" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
+<text x="413" y="548" class="math" text-anchor="middle" style="fill:#99521e">⋯</text>
+<rect x="494" y="510" width="98" height="60" rx="9" fill="#fff2e6" stroke="#bd7e4b"/>
+<text x="543" y="548" class="math" text-anchor="middle" style="fill:#99521e">ω<tspan baseline-shift="sub" font-size="16">t+H</tspan><tspan baseline-shift="super" font-size="14">(j)</tspan></text>
+<text x="88" y="612" class="body" >Xₜ: L samples × m pressure sensors</text>
+<text x="88" y="646" class="body" style="fill:#99521e">Ω<tspan baseline-shift="super" font-size="14">(j)</tspan>: H future rotation values</text>
 <!-- The feature channel enters the same surrogate for every candidate. -->
-<path d="M640 442H739" class="line"/>
-<text x="690" y="413" class="muted" text-anchor="middle">[Xₜ | Ωⱼ]</text>
-<text x="755" y="217" class="step">2 / SHRED SURROGATE</text>
-<rect x="750" y="300" width="320" height="290" rx="20" fill="#185e79"/>
-<text x="910" y="345" class="heading white" text-anchor="middle">Trained model</text>
-<rect x="778" y="371" width="264" height="65" rx="10" fill="#fff"/>
-<text x="910" y="398" class="body" text-anchor="middle">Recurrent encoder</text>
-<text x="910" y="422" class="muted" text-anchor="middle">LSTM · temporal history</text>
-<path d="M910 443V463" stroke="#fff" stroke-width="2.5"/>
-<path d="M904 457L910 464L916 457" fill="none" stroke="#fff" stroke-width="2.5"/>
-<rect x="778" y="472" width="264" height="87" rx="10" fill="#fff"/>
-<text x="910" y="502" class="body" text-anchor="middle">Shallow decoder</text>
-<text x="910" y="529" class="muted" text-anchor="middle">+ spatial reconstruction</text>
-<text x="910" y="643" class="body" text-anchor="middle">Same weights for</text>
-<text x="910" y="673" class="body" text-anchor="middle">every candidate rotation</text>
-<path d="M1070 442H1160" class="line"/>
-<text x="1115" y="413" class="muted" text-anchor="middle">predict</text>
-<rect x="1170" y="178" width="570" height="524" rx="19" fill="#f7fafb" stroke="#c8d7dd" stroke-width="2"/>
-<text x="1198" y="217" class="step">3 / DECODE THE PREDICTION WINDOW</text>
-<text x="1198" y="259" class="heading">Full pressure fields for candidate ωⱼ</text>
+<path d="M640 416H739" class="line"/>
+<text x="755" y="195" class="step">2 / SHRED SURROGATE</text>
+<rect x="750" y="281" width="320" height="270" rx="20" fill="#185e79"/>
+<text x="910" y="323" class="heading white" text-anchor="middle">Trained model</text>
+<rect x="778" y="346" width="264" height="62" rx="10" fill="#fff"/>
+<text x="910" y="373" class="body" text-anchor="middle">Recurrent encoder</text>
+<text x="910" y="398" class="muted" text-anchor="middle">LSTM · temporal history</text>
+<path d="M910 416V434" stroke="#fff" stroke-width="2.5"/>
+<path d="M904 428L910 435L916 428" fill="none" stroke="#fff" stroke-width="2.5"/>
+<rect x="778" y="443" width="264" height="79" rx="10" fill="#fff"/>
+<text x="910" y="474" class="body" text-anchor="middle">Shallow decoder</text>
+<text x="910" y="501" class="muted" text-anchor="middle">+ spatial reconstruction</text>
+<text x="910" y="612" class="body" text-anchor="middle">Same weights for</text>
+<text x="910" y="644" class="body" text-anchor="middle">every candidate rotation</text>
+<path d="M1070 416H1160" class="line"/>
+<text x="1115" y="387" class="muted" text-anchor="middle">predict</text>
+<rect x="1170" y="156" width="570" height="520" rx="19" fill="#f7fafb" stroke="#c8d7dd" stroke-width="2"/>
+<text x="1198" y="195" class="step">3 / DECODE THE PREDICTION WINDOW</text>
+<text x="1198" y="237" class="heading">Full pressure fields for candidate j</text>
 
-<text x="1276" y="303" class="muted" text-anchor="middle">t+1</text>
-<rect x="1202" y="320" width="148" height="270" rx="11" fill="#eaf3ee" stroke="#9cb8a7"/>
-<text x="1276" y="358" class="math" text-anchor="middle" style="font-size:29px;fill:#33694f">p̂⁽ʲ⁾</text>
-<path d="M1242 384H1233V565H1242 M1310 384H1319V565H1310" fill="none" stroke="#6d9380" stroke-width="2"/>
-<text x="1276" y="415" class="math" text-anchor="middle">p̂₁</text>
-<text x="1276" y="458" class="math" text-anchor="middle">p̂₂</text>
-<text x="1276" y="503" class="math" text-anchor="middle">⋮</text>
-<text x="1276" y="547" class="math" text-anchor="middle">p̂ₙ</text>
-<text x="1455" y="303" class="muted" text-anchor="middle">⋯</text>
-<rect x="1381" y="320" width="148" height="270" rx="11" fill="#eaf3ee" stroke="#9cb8a7"/>
-<text x="1455" y="466" class="math" text-anchor="middle">⋯</text>
-<text x="1634" y="303" class="muted" text-anchor="middle">t+H</text>
-<rect x="1560" y="320" width="148" height="270" rx="11" fill="#eaf3ee" stroke="#9cb8a7"/>
-<text x="1634" y="358" class="math" text-anchor="middle" style="font-size:29px;fill:#33694f">p̂⁽ʲ⁾</text>
-<path d="M1600 384H1591V565H1600 M1668 384H1677V565H1668" fill="none" stroke="#6d9380" stroke-width="2"/>
-<text x="1634" y="415" class="math" text-anchor="middle">p̂₁</text>
-<text x="1634" y="458" class="math" text-anchor="middle">p̂₂</text>
-<text x="1634" y="503" class="math" text-anchor="middle">⋮</text>
-<text x="1634" y="547" class="math" text-anchor="middle">p̂ₙ</text>
-<text x="1198" y="633" class="body" >n spatial locations · H future timesteps</text>
-<text x="1198" y="670" class="body" >A predicted field on the same mesh</text>
+<text x="1276" y="281" class="muted" text-anchor="middle">t+1</text>
+<rect x="1202" y="298" width="148" height="270" rx="11" fill="#eaf3ee" stroke="#9cb8a7"/>
+<text x="1276" y="336" class="math" text-anchor="middle" style="font-size:29px;fill:#33694f">p̂<tspan baseline-shift="sub" font-size="18">t+1</tspan><tspan baseline-shift="super" font-size="15">(j)</tspan></text>
+<path d="M1242 362H1233V543H1242 M1310 362H1319V543H1310" fill="none" stroke="#6d9380" stroke-width="2"/>
+<text x="1276" y="393" class="math" text-anchor="middle">p̂₁</text>
+<text x="1276" y="436" class="math" text-anchor="middle">p̂₂</text>
+<text x="1276" y="481" class="math" text-anchor="middle">⋮</text>
+<text x="1276" y="525" class="math" text-anchor="middle">p̂ₙ</text>
+<text x="1455" y="281" class="muted" text-anchor="middle">⋯</text>
+<rect x="1381" y="298" width="148" height="270" rx="11" fill="#eaf3ee" stroke="#9cb8a7"/>
+<text x="1455" y="444" class="math" text-anchor="middle">⋯</text>
+<text x="1634" y="281" class="muted" text-anchor="middle">t+H</text>
+<rect x="1560" y="298" width="148" height="270" rx="11" fill="#eaf3ee" stroke="#9cb8a7"/>
+<text x="1634" y="336" class="math" text-anchor="middle" style="font-size:29px;fill:#33694f">p̂<tspan baseline-shift="sub" font-size="18">t+H</tspan><tspan baseline-shift="super" font-size="15">(j)</tspan></text>
+<path d="M1600 362H1591V543H1600 M1668 362H1677V543H1668" fill="none" stroke="#6d9380" stroke-width="2"/>
+<text x="1634" y="393" class="math" text-anchor="middle">p̂₁</text>
+<text x="1634" y="436" class="math" text-anchor="middle">p̂₂</text>
+<text x="1634" y="481" class="math" text-anchor="middle">⋮</text>
+<text x="1634" y="525" class="math" text-anchor="middle">p̂ₙ</text>
+<text x="1198" y="612" class="body" >n spatial locations · H future timesteps</text>
+<text x="1198" y="646" class="body" >A predicted field on the same mesh</text>
 </svg>
