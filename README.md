@@ -1,23 +1,26 @@
-# SHRED-MPC
-**Lift control of a rotating cylinder through MPC with a recurrent Neural Network (SHRED-ROM) with sparse measurements as a surrogate model of the physical system**
+# SHRED-MPC: Data-Driven Reduced-Order Surrogate Modeling for Fast MPC
+**Data-driven Model Predictive Control (MPC) for lift tracking in high-dimensional fluid flows, utilizing a Shallow Recurrent Decoder (SHRED) surrogate model with sparse sensor measurements.**
 
 ![Full cylinder-control demonstration: CFD and predicted pressure alongside the lift target.](website/assets/cylinder-control.gif)
 
 *Cylinder-control demonstration: CFD pressure, SHRED pressure prediction and error fields are shown alongside the predicted and target lift histories.*
 
-This project studies model predictive control (MPC) for lift tracking in flow past a rotating cylinder. It uses a control-conditioned Shallow Recurrent Decoder (SHRED) as a learned surrogate for the CFD system. SHRED maps a time history of sparse pressure measurements to a high-dimensional pressure field; its recurrent encoder represents temporal information, while a shallow decoder maps that representation to the field [1, 2].
+This project studies model predictive control (MPC) for lift tracking in flow past a rotating cylinder. It implements a control-conditioned Shallow Recurrent Decoder (SHRED) as a learned surrogate for the complex fluid dynamic system. 
 
-SHallow REcurrent Decoder-based Reduced Order Model (SHRED-ROM) is an ultra-hyperreduced order modeling framework aiming at reconstructing high-dimensional data from limited sensor measurements in multiple scenarios. 
-Using this as the surrogate model means being capable of: 
-- having a full picture of the state in the prediction window, for every control parameter, starting from a limited and sparse number of measurements; this is coherent with real world applications, where a full measurement of the entire system is never provided;
-- reconstructing the whole space and evaluating on it the loss function provides great flexibility, as no retraining is needed when switching objective and this can even happen online;
-- using such a Shallow RNN and then coupling it with the ROM decoder drastically improves the performance of the system, reducing the computational powered required to run it and making it available for faster systems. 
+SHRED maps a time history of sparse pressure measurements to a high-dimensional pressure field; its recurrent encoder captures temporal dynamics, while a shallow decoder maps that latent representation to the full physical field [1, 2].
+
+The SHallow REcurrent Decoder-based Reduced Order Model (SHRED-ROM) is an ultra-hyperreduced modeling framework that provides several critical advantages for optimal control: 
+- Full-State Observability from Sparse Sensors: starting solely from a limited number of sparse measurements SHRED-MPC provides a full-state prediction for any control parameter. This is coherent with real-world architectures where only limited sensor measurements are available; 
+- Real-Time Computational Efficiency: coupling a Shallow RNN with a ROM decoder reduces the computational overhead of the forward prediction step, which is crucial for fast MPC execution.
+- Objective Function Flexibility: by reconstructing the whole space and evaluating on it the cost function, the system has enormous flexibility in switching it dynamically, even online, without any pretraining required.  
 
 
 ## Method
 
 
-For each MPC update, the history of  are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC.
+For each MPC update, the history of sparse measurements is paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. 
+
+Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated, in a receding-horizon manner. 
 
 ![MPC structure with SHRED acting as a surrogate pressure model. Sparse pressure and rotation history enter SHRED; candidate rotation profiles are evaluated from predicted pressure-derived lift; the optimizer applies one selected segment to CFD, which returns new measurements.](website/assets/mpc-surrogate-structure.svg)
 
