@@ -1,12 +1,15 @@
 # SHRED-MPC
-
-**MPC for rotating-cylinder lift control, using SHRED as a surrogate model from sparse pressure measurements.**
+**A control-conditioned SHRED surrogate for sparse-pressure prediction and lift tracking in rotating-cylinder flow.**
 
 ![Full cylinder-control demonstration: CFD and predicted pressure alongside the lift target.](website/assets/cylinder-control.gif)
 
 *Cylinder-control demonstration: CFD pressure, SHRED pressure prediction and error fields are shown alongside the predicted and target lift histories.*
 
-This project uses a control-conditioned Shallow Recurrent Decoder (SHRED) to predict pressure fields from sparse pressure observations and a candidate rotation history. Model predictive control evaluates these histories using a pressure-derived lift observable, applies the first part of the chosen rotation command in OpenFOAM, and repeats with updated observations.
+This project studies model predictive control (MPC) for lift tracking in flow past a rotating cylinder, using a control-conditioned Shallow Recurrent Decoder (SHRED) as a learned surrogate for pressure evolution. The SHRED architecture encodes temporal information from sensor histories with a recurrent network and maps that representation to a high-dimensional state with a shallow decoder [1]. SHRED-ROM combines this approach with reduced-order representations of the state [2]. In this implementation, sparse pressure observations and the corresponding rotation history condition predictions of future pressure fields.
+
+For each MPC update, the measured pressure and rotation histories are paired with candidate future rotation profiles. The trained SHRED model predicts the corresponding pressure fields, from which the code computes a pressure-derived lift observable. An optimizer scores each candidate using lift tracking, predicted lift oscillation, and control-move costs. Only the first segment of the selected profile is applied to the OpenFOAM simulation; new pressure observations then update the history and the optimization is repeated. This follows the receding-horizon principle of MPC [3]. Related work has also combined learned recurrent surrogates, sparse sensing, and MPC for flow control [4].
+
+In this repository, model training occurs before the control run. The saved model is loaded as a fixed surrogate during MPC; the controller does not perform online learning. The lift quantity is derived from predicted pressure using the project’s existing convention, so it should not be interpreted as total aerodynamic lift. The diagram below summarizes the implemented loop.
 
 ![SHRED-ROM overview: sensor histories, recurrent encoder, shallow decoder and POD reconstruction.](website/assets/shred-rom.png)
 
@@ -114,6 +117,14 @@ No dataset, trained checkpoint, statistical-analysis workflow or experiment arch
 ## People
 
 Developed by **Andrea Ingrao**, who carried out the design, implementation and experimental work, with theoretical guidance from **Matteo Tomasetto** and **Prof. Andrea Manzoni**, in the **MOX, Politecnico di Milano** project context. Upstream SHRED-ROM and PySHRED are credited separately from these project contributions.
+
+
+## References
+
+1. J. P. Williams, O. Zahn, and J. N. Kutz, “Sensing with shallow recurrent decoder networks,” arXiv:2301.12011, 2023. [arXiv](https://arxiv.org/abs/2301.12011).
+2. M. Tomasetto, J. P. Williams, F. Braghin, et al., “Reduced order modeling with shallow recurrent decoder networks,” *Nature Communications*, 16, 10260, 2025. [doi:10.1038/s41467-025-65126-y](https://doi.org/10.1038/s41467-025-65126-y).
+3. D. Q. Mayne, J. B. Rawlings, C. V. Rao, and P. O. M. Scokaert, “Constrained model predictive control: Stability and optimality,” *Automatica*, 36(6), 789–814, 2000. [doi:10.1016/S0005-1098(99)00214-9](https://doi.org/10.1016/S0005-1098(99)00214-9).
+4. K. Bieker, S. Peitz, S. L. Brunton, et al., “Deep model predictive flow control with limited sensor data and online learning,” *Theoretical and Computational Fluid Dynamics*, 34, 577–591, 2020. [doi:10.1007/s00162-020-00520-4](https://doi.org/10.1007/s00162-020-00520-4).
 
 ## Check and preview
 
