@@ -41,11 +41,7 @@ SHRED-ROM receives in input a lag of sensor measurements and decodes the entire 
 
 
 
-In this repository, model training occurs before the control run. The saved model is loaded as a fixed surrogate during MPC; the controller does not perform online learning. The lift quantity is derived from predicted pressure using the project’s existing convention, so it should not be interpreted as total aerodynamic lift. The diagram below summarizes the implemented loop.
-
-
-
-
+In this repository, model training occurs before the control run. The saved model is loaded as a fixed surrogate during MPC; the controller does not perform online learning. The lift quantity is derived from predicted pressure using the project’s existing convention, so it should not be interpreted as total aerodynamic lift. 
 [Open the project website](website/index.html)
 
 ## Quickstart
